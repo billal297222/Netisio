@@ -1,0 +1,15 @@
+<?php
+
+namespace App\Http\Controllers\Backend;
+
+use App\Http\Controllers\Controller;
+use Illuminate\Http\Request;
+use App\Models\User;
+
+class BackendController extends Controller
+{
+   public function index(){
+      $data['users'] = User::all();
+    return view('backend.layouts.dashboard',$data);
+   }
+}
