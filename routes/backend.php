@@ -6,7 +6,6 @@ use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Backend\CategoryController;
 use App\Http\Controllers\Backend\FqaController;
-use App\Http\Controllers\Backend\DynamicPagesController;
 use App\Http\Controllers\Backend\RoleController;
 use App\Http\Controllers\Backend\SettingController;
 use App\Http\Controllers\Backend\UserController;
@@ -60,17 +59,17 @@ Route::controller(PdfController::class)->group(function () {
 
 
 // Dynamic Pages Route
-Route::controller(DynamicPagesController::class)->group(function () {
-    Route::get('/dynamicpages', 'index')->name('dynamicpages.index');
-    Route::get('/dynamicpages/create', 'create')->name('dynamicpages.create');
+// Route::controller(DynamicPagesController::class)->group(function () {
+//     Route::get('/dynamicpages', 'index')->name('dynamicpages.index');
+//     Route::get('/dynamicpages/create', 'create')->name('dynamicpages.create');
 
-    Route::post('/dynamicpages/store', 'store')->name('dynamicpages.store');
-    Route::get('/dynamicpages/destroy/{id}', 'destroy')->name('dynamicpages.destroy');
-    Route::post('/bulk-delete', 'bulkDelete')->name('dynamicpages.bulk-delete');
-    Route::get('/dynamicpages/edit/{id}', 'edit')->name('dynamicpages.edit');
-    Route::post('/dynamicpages/update/{id}', 'update')->name('dynamicpages.update');
-    Route::post('/dynamicpages/status/{id}', 'status')->name('dynamicpages.status');
-});
+//     Route::post('/dynamicpages/store', 'store')->name('dynamicpages.store');
+//     Route::get('/dynamicpages/destroy/{id}', 'destroy')->name('dynamicpages.destroy');
+//     Route::post('/bulk-delete', 'bulkDelete')->name('dynamicpages.bulk-delete');
+//     Route::get('/dynamicpages/edit/{id}', 'edit')->name('dynamicpages.edit');
+//     Route::post('/dynamicpages/update/{id}', 'update')->name('dynamicpages.update');
+//     Route::post('/dynamicpages/status/{id}', 'status')->name('dynamicpages.status');
+// });
 
 
 // role permission routes

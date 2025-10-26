@@ -3,19 +3,15 @@
 namespace App\Models;
 
 use Illuminate\Foundation\Auth\User as Authenticatable;
-use LdapRecord\Laravel\Auth\LdapAuthenticatable;
-use LdapRecord\Laravel\Auth\AuthenticatesWithLdap;
 use Tymon\JWTAuth\Contracts\JWTSubject;
 
-class User extends Authenticatable implements LdapAuthenticatable, JWTSubject
+class User extends Authenticatable implements JWTSubject
 {
-    use AuthenticatesWithLdap;
-
     protected $fillable = [
         'name',
         'email',
         'uid',
-        'password'
+        'password',
     ];
 
     protected $hidden = [
@@ -23,7 +19,7 @@ class User extends Authenticatable implements LdapAuthenticatable, JWTSubject
         'remember_token',
     ];
 
-    // Required by JWTSubject
+    // JWT required methods
     public function getJWTIdentifier()
     {
         return $this->getKey();

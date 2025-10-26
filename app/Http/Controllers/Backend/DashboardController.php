@@ -10,8 +10,8 @@ class DashboardController extends Controller
     public function index()
     {
           $totalUsers = User::where('admin', 0)->count();
-        $totalPdfs = Pdf::count();
 
-        return view('backend.layouts.dashboard', compact('totalUsers', 'totalPdfs'));
+
+        return view('backend.layouts.dashboard', compact('totalUsers'));
     }
 }

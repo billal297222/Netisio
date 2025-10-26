@@ -17,7 +17,7 @@ return new class extends Migration
             $table->foreignId('parent_id')->constrained('parents')->cascadeOnDelete();
             $table->string('username', 100);
             $table->string('password', 255);
-            $table->string('pin', 255);
+            $table->string('pin', 255)->nullable();
             $table->string('full_name', 200)->nullable();
             $table->string('email', 255)->nullable();
             $table->string('kavatar', 255)->nullable();

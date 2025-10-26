@@ -5,12 +5,14 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use App\Models\Traits\JwtAuthenticatable;
 use Tymon\JWTAuth\Contracts\JWTSubject;
+
+
 
 class ParentModel extends Authenticatable implements JWTSubject
 {
-    use JwtAuthenticatable;
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, JwtAuthenticatable;
 
     protected $table = 'parents';
 
@@ -34,4 +36,14 @@ class ParentModel extends Authenticatable implements JWTSubject
         'otp_expires_at' => 'datetime',
         'balance' => 'decimal:2',
     ];
+
+    public function getJWTIdentifier()
+    {
+        return $this->getKey();
+    }
+
+    public function getJWTCustomClaims()
+    {
+        return [];
+    }
 }
