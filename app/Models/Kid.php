@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Tymon\JWTAuth\Contracts\JWTSubject;
+use Illuminate\Support\Facades\Hash;
 
 class Kid extends Authenticatable implements JWTSubject
 {
@@ -23,6 +24,7 @@ class Kid extends Authenticatable implements JWTSubject
         'kavatar',
         'balance',
         'today_can_spend',
+        'k_unique_id',
     ];
 
     protected $hidden = [
@@ -35,7 +37,18 @@ class Kid extends Authenticatable implements JWTSubject
         'today_can_spend' => 'decimal:2',
     ];
 
-    // JWT methods
+
+    public function family()
+    {
+        return $this->belongsTo(Family::class, 'family_id');
+    }
+
+
+    public function parent()
+    {
+        return $this->belongsTo(ParentModel::class, 'parent_id');
+    }
+
     public function getJWTIdentifier()
     {
         return $this->getKey();

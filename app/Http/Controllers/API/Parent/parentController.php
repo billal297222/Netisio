@@ -98,24 +98,68 @@ class parentController extends Controller
     }
 
 
-    public function myFamily(Request $request)
-    {
-        $parent = auth('parent')->user();
+   public function myFamily(Request $request)
+  {
+    $parent = auth('parent')->user();
 
-        if (!$parent) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Unauthorized or invalid token',
-            ], 401);
-        }
+    if (!$parent) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Unauthorized or invalid token',
+        ], 401);
+    }
 
-        $families = Family::with(['parent:id,full_name,p_unique_id','kids:id,full_name,k_unique_id'])
-        ->where('created_by_parent', $parent->id)
-            ->get();
+    $families = Family::with([
+        'parent:id,full_name,p_unique_id',
+        'kids:id,full_name,k_unique_id,family_id,parent_id'
+    ])
+    ->where('created_by_parent', $parent->id)
+    ->get();
 
-            return response()->json([
-            'status' => 'success',
-            'families' => $families
-        ]);
- }
+    return response()->json([
+        'status' => 'success',
+        'families' => $families
+    ]);
+  }
+
+  public function createGoal(Request $request)
+{
+    $parent = auth('parent')->user();
+
+    $request->validate([
+        'kid_id' => 'required|exists:kids,id',
+        'title' => 'required|string|max:150',
+        'description' => 'nullable|string|max:200',
+        'target_amount' => 'required|numeric|min:0.01',
+    ]);
+
+    $kid = Kid::where('id', $request->kid_id)
+              ->where('parent_id', $parent->id)
+              ->first();
+
+    if (!$kid) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Invalid kid ID or kid does not belong to this parent.',
+        ], 403);
+    }
+
+    $goal = Saving::create([
+        'kid_id' => $kid->id,
+        'title' => $request->title,
+        'description' => $request->description,
+        'target_amount' => $request->target_amount,
+        'saved_amount' => 0.00,
+        'status' => 'in_progress',
+        'created_by_parent_id' => $parent->id,
+    ]);
+
+    return response()->json([
+        'status' => 'success',
+        'message' => 'Saving goal created successfully for kid: ' . $kid->full_name,
+        'goal' => $goal,
+    ]);
+}
+
+
 }

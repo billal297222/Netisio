@@ -19,19 +19,26 @@ Route::middleware('auth:parent')->group(function () {
     Route::post('/parents/profile/edit', [ParentController::class, 'ParentProfileEdit']);
     Route::post('/parents/change-password', [ParentController::class, 'changePassword']);
     Route::get('/parents/my-family', [ParentController::class, 'myFamily']);
+   // Route::post('/kids/savings-goal', [KidController::class, 'createGoal']);
 });
 
 
 Route::middleware('auth:kid')->group(function () {
     Route::post('/kids/profile/edits', [KidController::class, 'KidProfileEdit']);
     Route::post('/kids/change/password', [KidController::class, 'changePassword']);
+    Route::get('/kids/my-family', [KidController::class, 'myFamily']);
+   // Route::post('/kids/savings-goal', [KidController::class, 'createGoal']);
+    Route::post('/kids/saving-goals/{goal_id}/add', [KidController::class, 'AddMoney']);
+});
 
 
-
+Route::middleware(['auth:parent,kid'])->group(function () {
+    Route::post('/kids/saving-goals/create', [KidController::class, 'createGoal']);
 });
 
 Route::get('/test', function() {
     return response()->json(['status'=>'ok']);
+
 });
 
 

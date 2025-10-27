@@ -79,7 +79,6 @@ class ParentAuthController extends Controller
         ], 400);
     }
 
-    // Generate unique p_unique_id (8 characters, alphanumeric)
     do {
         $p_unique_id = strtoupper(substr(uniqid(), -8));
     } while (ParentModel::where('p_unique_id', $p_unique_id)->exists());
