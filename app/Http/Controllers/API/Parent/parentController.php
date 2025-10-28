@@ -3,22 +3,14 @@
 namespace App\Http\Controllers\API\Parent;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use App\Models\ParentModel;
 use App\Models\Family;
 use App\Models\Kid;
+use App\Models\Saving;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
-use Tymon\JWTAuth\Facades\JWTAuth;
-use Carbon\Carbon;
-use App\Mail\SendOtpMail;
 
 class parentController extends Controller
 {
-
     public function ParentProfileEdit(Request $request)
     {
         $parent = auth('parent')->user(); // JWT-authenticated parent
@@ -43,7 +35,7 @@ class parentController extends Controller
         if ($request->hasFile('favatar')) {
             $family = Family::where('created_by_parent', $parent->id)->first();
 
-            if (!$family) {
+            if (! $family) {
                 return response()->json([
                     'status' => 'error',
                     'message' => 'No family found for this parent',
@@ -51,9 +43,9 @@ class parentController extends Controller
             }
 
             $file = $request->file('favatar');
-            $filename = time() . '_' . $file->getClientOriginalName();
+            $filename = time().'_'.$file->getClientOriginalName();
             $file->move(public_path('family_avatars/favatar'), $filename);
-            $family->favatar = 'family_avatars/favatar/' . $filename;
+            $family->favatar = 'family_avatars/favatar/'.$filename;
             $family->save();
         }
 
@@ -64,12 +56,11 @@ class parentController extends Controller
         ]);
     }
 
-
     public function changePassword(Request $request)
     {
         $parent = auth('parent')->user();
 
-        if (!$parent) {
+        if (! $parent) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Unauthorized or invalid token',
@@ -81,7 +72,7 @@ class parentController extends Controller
             'new_password' => 'required|string|min:1|confirmed',
         ]);
 
-        if (!Hash::check($request->current_password, $parent->password)) {
+        if (! Hash::check($request->current_password, $parent->password)) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Current password is incorrect',
@@ -97,69 +88,68 @@ class parentController extends Controller
         ]);
     }
 
+    public function myFamily(Request $request)
+    {
+        $parent = auth('parent')->user();
 
-   public function myFamily(Request $request)
-  {
-    $parent = auth('parent')->user();
+        if (! $parent) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Unauthorized or invalid token',
+            ], 401);
+        }
 
-    if (!$parent) {
+        $families = Family::with([
+            'parent:id,full_name,p_unique_id',
+            'kids:id,full_name,k_unique_id,family_id,parent_id',
+        ])
+            ->where('created_by_parent', $parent->id)
+            ->get();
+
         return response()->json([
-            'status' => 'error',
-            'message' => 'Unauthorized or invalid token',
-        ], 401);
+            'status' => 'success',
+            'families' => $families,
+        ]);
     }
 
-    $families = Family::with([
-        'parent:id,full_name,p_unique_id',
-        'kids:id,full_name,k_unique_id,family_id,parent_id'
-    ])
-    ->where('created_by_parent', $parent->id)
-    ->get();
+    public function createGoal(Request $request)
+    {
+        $parent = auth('parent')->user();
 
-    return response()->json([
-        'status' => 'success',
-        'families' => $families
-    ]);
-  }
+        $request->validate([
+            'kid_id' => 'required|exists:kids,id',
+            'title' => 'required|string|max:150',
+            'description' => 'nullable|string|max:200',
+            'target_amount' => 'required|numeric|min:0.01',
+        ]);
 
-  public function createGoal(Request $request)
-{
-    $parent = auth('parent')->user();
+        $kid = Kid::where('id', $request->kid_id)
+            ->where('parent_id', $parent->id)
+            ->first();
 
-    $request->validate([
-        'kid_id' => 'required|exists:kids,id',
-        'title' => 'required|string|max:150',
-        'description' => 'nullable|string|max:200',
-        'target_amount' => 'required|numeric|min:0.01',
-    ]);
+        if (! $kid) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Invalid kid ID or kid does not belong to this parent.',
+            ], 403);
+        }
 
-    $kid = Kid::where('id', $request->kid_id)
-              ->where('parent_id', $parent->id)
-              ->first();
+        $goal = Saving::create([
+            'kid_id' => $kid->id,
+            'title' => $request->title,
+            'description' => $request->description,
+            'target_amount' => $request->target_amount,
+            'saved_amount' => 0.00,
+            'status' => 'in_progress',
+            'created_by_parent_id' => $parent->id,
+        ]);
 
-    if (!$kid) {
         return response()->json([
-            'status' => 'error',
-            'message' => 'Invalid kid ID or kid does not belong to this parent.',
-        ], 403);
+            'status' => 'success',
+            'message' => 'Saving goal created successfully for kid: '.$kid->full_name,
+            'goal' => $goal,
+        ]);
     }
-
-    $goal = Saving::create([
-        'kid_id' => $kid->id,
-        'title' => $request->title,
-        'description' => $request->description,
-        'target_amount' => $request->target_amount,
-        'saved_amount' => 0.00,
-        'status' => 'in_progress',
-        'created_by_parent_id' => $parent->id,
-    ]);
-
-    return response()->json([
-        'status' => 'success',
-        'message' => 'Saving goal created successfully for kid: ' . $kid->full_name,
-        'goal' => $goal,
-    ]);
-}
 
 
 }

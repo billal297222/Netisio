@@ -93,118 +93,174 @@ class KidController extends Controller
         ]);
     }
 
- public function createGoal(Request $request)
-{
-    $request->validate([
-        'kid_id' => 'nullable|exists:kids,id',
-        'title' => 'required|string|max:150',
-        'description' => 'nullable|string|max:200',
-        'target_amount' => 'required|numeric|min:0.01',
-    ]);
+    public function createGoal(Request $request)
+    {
+        $request->validate([
+            'kid_id' => 'nullable|exists:kids,id',
+            'title' => 'required|string|max:150',
+            'description' => 'nullable|string|max:200',
+            'target_amount' => 'required|numeric|min:0.01',
+        ]);
 
-    $kid = null;
-    $createdByParentId = null;
+        $kid = null;
+        $createdByParentId = null;
 
-    if (auth('kid')->check()) {
-        $kid = auth('kid')->user();
+        if (auth('kid')->check()) {
+            $kid = auth('kid')->user();
 
-    } elseif (auth('parent')->check()) {
-        $parent = auth('parent')->user();
-         
-        if (!$request->kid_id) {
+        } elseif (auth('parent')->check()) {
+            $parent = auth('parent')->user();
+
+            if (! $request->kid_id) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'kid_id is required when parent creates a goal.',
+                ], 422);
+            }
+
+            $kid = Kid::where('id', $request->kid_id)
+                ->where('parent_id', $parent->id)
+                ->first();
+
+            if (! $kid) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Invalid kid or kid not associated with this parent.',
+                ], 403);
+            }
+
+            $createdByParentId = $parent->id;
+        } else {
             return response()->json([
                 'status' => 'error',
-                'message' => 'kid_id is required when parent creates a goal.',
-            ], 422);
+                'message' => 'Unauthorized user.',
+            ], 401);
         }
 
-        $kid = Kid::where('id', $request->kid_id)
-            ->where('parent_id', $parent->id)
-            ->first();
+        $goal = Saving::create([
+            'kid_id' => $kid->id,
+            'title' => $request->title,
+            'description' => $request->description ?? '',
+            'target_amount' => $request->target_amount,
+            'saved_amount' => 0.00,
+            'status' => 'in_progress',
+            'created_by_parent_id' => $createdByParentId,
+        ]);
 
-        if (!$kid) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Invalid kid or kid not associated with this parent.',
-            ], 403);
-        }
-
-        $createdByParentId = $parent->id;
-    } else {
         return response()->json([
-            'status' => 'error',
-            'message' => 'Unauthorized user.',
-        ], 401);
+            'status' => 'success',
+            'message' => 'Saving goal created successfully.',
+            'goal' => $goal,
+        ]);
     }
 
-    $goal = Saving::create([
-        'kid_id' => $kid->id,
-        'title' => $request->title,
-        'description' => $request->description ?? '',
-        'target_amount' => $request->target_amount,
-        'saved_amount' => 0.00,
-        'status' => 'in_progress',
-        'created_by_parent_id' => $createdByParentId,
-    ]);
-
-    return response()->json([
-        'status' => 'success',
-        'message' => 'Saving goal created successfully.',
-        'goal' => $goal,
-    ]);
-}
-
-
-
-    public function AddMoney(Request $request,$goal_id)
+    public function AddMoney(Request $request, $goal_id)
     {
         $kid = auth('kid')->user();
         $request->validate([
-            'amount'=>'required|numeric|min:0.01',
+            'amount' => 'required|numeric|min:0.01',
         ]);
 
-        $goal = Saving::where('id',$goal_id)->where('kid_id',$kid->id)->first();
+        $goal = Saving::where('id', $goal_id)->where('kid_id', $kid->id)->first();
 
-        if(!$goal){
-           return response()->json([
-            'status' => 'error',
-            'message' => 'Saving goal not found',
-        ], 404);
+        if (! $goal) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Saving goal not found',
+            ], 404);
         }
 
-        if($goal->status=='completed'){
-             return response()->json([
-            'status' => 'error',
-            'message' => 'This saving goal is already completed.',
-        ], 400);
+        if ($goal->status == 'completed') {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'This saving goal is already completed.',
+            ], 400);
         }
 
         $newAmount = $goal->saved_amount + $request->amount;
 
-        if($newAmount>$goal->target_amount){
+        if ($newAmount > $goal->target_amount) {
             return response()->json([
-            'status' => 'error',
-            'message' => 'Amount exceeds target goal. You can only add up to '
-                         . number_format($goal->target_amount - $goal->saved_amount, 2) . ' more.',
-        ], 400);
+                'status' => 'error',
+                'message' => 'Amount exceeds target goal. You can only add up to '
+                             .number_format($goal->target_amount - $goal->saved_amount, 2).' more.',
+            ], 400);
 
         }
 
-        $goal->saved_amount=$newAmount;
-        if($goal->saved_amount==$goal->target_amount){
-            $goal->status='completed';
+        $goal->saved_amount = $newAmount;
+        if ($goal->saved_amount == $goal->target_amount) {
+            $goal->status = 'completed';
         }
         $goal->save();
+
         return response()->json([
-        'status' => 'success',
-        'message' => 'Amount added successfully',
-        'goal' => $goal,
-    ]);
+            'status' => 'success',
+            'message' => 'Amount added successfully',
+            'goal' => $goal,
+        ]);
     }
 
+    public function getKidSaving()
+    {
+        $kid = auth('kid')->user();
+        $goals = Saving::where('kid_id', $kid->id)->orderBy('created_at', 'desc')->get();
+
+        return response()->json([
+            'message' => 'saving goals retrieved successfully.',
+            'tasks' => $goals,
+        ]);
+    }
+
+    public function KidProfile()
+    {
+        $kid = auth('kid')->user();
 
 
+        return response()->json([
+            'message' => 'Kid profile retrieved successfully.',
+            'profile' => [
+                'id' => $kid->id,
+                'full_name' => $kid->full_name,
+                'avatar' => $kid->kavatar ? url($kid->kavatar) : null,
+                'today_can_spend' => (float) $kid->today_can_spend,
+                'total_balance' => (float) $kid->balance,
+            ],
+        ], 200);
+    }
 
+    public function updateTodayCanSpend(Request $request, $kidId)
+{
 
+     $parent = auth('parent')->user();
+    $request->validate([
+        'today_can_spend' => 'required|numeric|min:0',
+    ]);
+
+    $kid = Kid::where('id', $kidId)
+              ->where('parent_id', $parent->id)
+              ->first();
+
+    if (!$kid) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Kid not found'
+        ], 404);
+    }
+
+    $kid->today_can_spend = $request->today_can_spend;
+    $kid->save();
+
+    return response()->json([
+        'status' => 'success',
+        'message' => 'Today spend updated successfully',
+        'kid' => [
+            'id' => $kid->id,
+            'username' => $kid->username,
+            'today_can_spend' => $kid->today_can_spend,
+            'balance' => $kid->balance,
+        ],
+    ]);
+}
 
 }
