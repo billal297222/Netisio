@@ -7,6 +7,7 @@ use App\Mail\SendOtpMail;
 use App\Models\Family;
 use App\Models\Kid;
 use App\Models\ParentModel;
+use App\Models\Backend;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -83,12 +84,17 @@ class ParentAuthController extends Controller
             $p_unique_id = strtoupper(substr(uniqid(), -8));
         } while (ParentModel::where('p_unique_id', $p_unique_id)->exists());
 
+
+        $backend = Backend::first();
+        $available_limit = $backend ? $backend->monthly_limit : 10000.00;
+
         $parent = ParentModel::create([
             'full_name' => $data['full_name'],
             'email' => $data['email'],
             'password' => $data['password'],
             'is_verified' => true,
             'balance' => 0.00,
+            'available_limit' => $available_limit,
             'p_unique_id' => $p_unique_id,
         ]);
 

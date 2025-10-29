@@ -73,4 +73,28 @@ class KidTransactionController extends Controller
         ]);
 
     }
+
+       public function sendUsers()
+    {
+         $kid = auth('kid')->user();
+         $transections = KidTransaction::where('kid_id',$kid->id)->where('type','send')
+                                        ->with(['receiverKid','receiverParent'])->orderBy('transaction_date', 'desc')->get();
+
+        $result= $transections->map(function($tx){
+            return [
+                'transaction_id' => $tx->id,
+                'amount' => $tx->amount,
+                'status' => $tx->status,
+                'date' => $tx->transaction_date,
+                'receiver_type' => $tx->receiverKid ? 'kid' : 'parent',
+                'receiver_id' => $tx->receiverKid ? $tx->receiverKid->id : $tx->receiverParent->id,
+                'receiver_name' => $tx->receiverKid ? $tx->receiverKid->full_name : $tx->receiverParent->full_name,
+            ];
+        });
+
+        return response()->json([
+            'status' => 'success',
+            'send_users' =>$result
+        ]);
+    }
 }

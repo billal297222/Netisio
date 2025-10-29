@@ -7,6 +7,7 @@ use  App\Http\Controllers\API\Parent\ParentController;
 use  App\Http\Controllers\API\Task\TaskController;
 use  App\Http\Controllers\API\WeeklyPayment\WeeklyPaymentController;
 use  App\Http\Controllers\API\KidMoney\KidTransactionController;
+use  App\Http\Controllers\API\ParentMoney\ParentTransactionController;
 
 
 Route::post('/parents/register', [ParentAuthController::class, 'register']);
@@ -54,15 +55,23 @@ Route::middleware('auth:kid')->group(function () {
 });
 
 
-//kids money
+// kids money
 Route::middleware('auth:kid')->group(function () {
     Route::post('/kid/send-money', [KidTransactionController::class, 'sendMoney']);
+    Route::get('/kid/sent-users', [KidTransactionController::class, 'sendUsers']);
 
+});
+
+// parents money
+Route::middleware('auth:parent')->group(function () {
+    Route::post('/parent/deposite-money', [ParentTransactionController::class, 'deposite']);
+    Route::get('/parent/deposite-limit', [ParentTransactionController::class, 'depositeLimite']);
 });
 
 
 Route::middleware(['auth:parent,kid'])->group(function () {
     Route::post('/kids/saving-goals/create', [KidController::class, 'createGoal']);
+
 });
 
 
