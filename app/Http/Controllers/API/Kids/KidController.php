@@ -216,7 +216,6 @@ class KidController extends Controller
     {
         $kid = auth('kid')->user();
 
-
         return response()->json([
             'message' => 'Kid profile retrieved successfully.',
             'profile' => [
@@ -230,37 +229,57 @@ class KidController extends Controller
     }
 
     public function updateTodayCanSpend(Request $request, $kidId)
-{
+    {
 
-     $parent = auth('parent')->user();
-    $request->validate([
-        'today_can_spend' => 'required|numeric|min:0',
-    ]);
+        $parent = auth('parent')->user();
+        $request->validate([
+            'today_can_spend' => 'required|numeric|min:0',
+        ]);
 
-    $kid = Kid::where('id', $kidId)
-              ->where('parent_id', $parent->id)
-              ->first();
+        $kid = Kid::where('id', $kidId)
+            ->where('parent_id', $parent->id)
+            ->first();
 
-    if (!$kid) {
+        if (! $kid) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Kid not found',
+            ], 404);
+        }
+
+        $kid->today_can_spend = $request->today_can_spend;
+        $kid->save();
+
         return response()->json([
-            'status' => 'error',
-            'message' => 'Kid not found'
-        ], 404);
+            'status' => 'success',
+            'message' => 'Today spend updated successfully',
+            'kid' => [
+                'id' => $kid->id,
+                'username' => $kid->username,
+                'today_can_spend' => $kid->today_can_spend,
+                'balance' => $kid->balance,
+            ],
+        ]);
     }
 
-    $kid->today_can_spend = $request->today_can_spend;
-    $kid->save();
+    public function klogout()
+    {
+        try {
 
-    return response()->json([
-        'status' => 'success',
-        'message' => 'Today spend updated successfully',
-        'kid' => [
-            'id' => $kid->id,
-            'username' => $kid->username,
-            'today_can_spend' => $kid->today_can_spend,
-            'balance' => $kid->balance,
-        ],
-    ]);
-}
+            $token = auth('kid')->getToken();
+            auth('kid')->invalidate($token);
 
+            return response()->json([
+                'status' => 'success',
+                'message' => 'kid logged out successfully',
+            ]);
+
+        } catch (\Tymon\JWTAuth\Exceptions\JWTException $e) {
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to logout, please try again',
+            ], 500);
+        }
+    }
 }

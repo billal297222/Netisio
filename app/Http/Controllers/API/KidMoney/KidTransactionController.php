@@ -97,4 +97,29 @@ class KidTransactionController extends Controller
             'send_users' =>$result
         ]);
     }
+
+    public  function wallet(){
+         $kid = auth('kid')->user();
+
+         if(!$kid){
+            return response()->json([
+                'status' => 'failed',
+                'message' => 'user not found',
+            ],401);
+         }
+
+         return response()->json([
+              'status' => 'success',
+              'kid' => [
+                'id'=>$kid->id,
+                'full_name' => $kid->full_name,
+                'kavatar_url'=>$kid->kavatar ? url($kid->kavatar):null,
+                'balance'=>number_format($kid->balance,2),
+                'today_can_spend'=>number_format($kid->today_can_spend,2),
+               ]
+
+         ],201);
+
+    }
 }
+

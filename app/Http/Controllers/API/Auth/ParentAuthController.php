@@ -225,4 +225,24 @@ class ParentAuthController extends Controller
             'token' => $token,
         ]);
     }
+
+    public function plogout()
+    {
+        try{
+
+            $token = auth('parent')->getToken();
+            auth('parent')->invalidate($token);
+             return response()->json([
+            'status' => 'success',
+            'message' => 'Parent logged out successfully'
+        ]);
+
+        }catch(\Tymon\JWTAuth\Exceptions\JWTException $e){
+
+            return response()->json([
+            'status' => 'error',
+            'message' => 'Failed to logout, please try again'
+        ], 500);
+        }
+    }
 }

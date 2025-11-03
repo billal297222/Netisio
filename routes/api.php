@@ -27,7 +27,8 @@ Route::middleware('auth:parent')->group(function () {
    // Route::post('/kids/savings-goal', [KidController::class, 'createGoal']);
    Route::post('/parent/tasks/today', [TaskController::class, 'createTask']);
    Route::post('/parent/weekly-payments', [WeeklyPaymentController::class, 'createWeeklyPayment']);
-  Route::post('/parent/kids/{kidId}/today-spend', [KidController::class, 'updateTodayCanSpend']);
+   Route::post('/parent/kids/{kidId}/today-spend', [KidController::class, 'updateTodayCanSpend']);
+   Route::post('/parents/logout', [ParentAuthController::class, 'plogout']);
 
 });
 
@@ -43,6 +44,7 @@ Route::middleware('auth:kid')->group(function () {
     Route::post('/kid/weekly-payments/{id}/pay', [WeeklyPaymentController::class, 'payWeeklyPayment']);
     Route::get('/kid/weekly-payment/all', [WeeklyPaymentController::class, 'getKidPayment']);
     Route::get('/kid/profile', [KidController::class, 'KidProfile']);
+    Route::post('/kids/logout', [KidController::class, 'klogout']);
 
 });
 
@@ -59,6 +61,7 @@ Route::middleware('auth:kid')->group(function () {
 Route::middleware('auth:kid')->group(function () {
     Route::post('/kid/send-money', [KidTransactionController::class, 'sendMoney']);
     Route::get('/kid/sent-users', [KidTransactionController::class, 'sendUsers']);
+    Route::get('/kid/wallet', [KidTransactionController::class, 'wallet']);
 
 });
 
@@ -66,6 +69,7 @@ Route::middleware('auth:kid')->group(function () {
 Route::middleware('auth:parent')->group(function () {
     Route::post('/parent/deposite-money', [ParentTransactionController::class, 'deposite']);
     Route::get('/parent/deposite-limit', [ParentTransactionController::class, 'depositeLimite']);
+    Route::get('/parent/wallet', [ParentTransactionController::class, 'wallet']);
 });
 
 

@@ -66,4 +66,27 @@ class ParentTransactionController extends Controller
             'available_limit' => $parent->available_limit,
         ]);
     }
+
+     public  function wallet(){
+         $parent = auth('parent')->user();
+
+         if(!$parent){
+            return response()->json([
+                'status' => 'failed',
+                'message' => 'user not found',
+            ],401);
+         }
+
+         return response()->json([
+              'status' => 'success',
+              'kid' => [
+                'id'=>$parent->id,
+                'full_name' => $parent->full_name,
+                'kavatar_url'=>$parent->kavatar ? url($parent->kavatar):null,
+                'balance'=>number_format($parent->balance,2),
+               ]
+
+         ],201);
+
+    }
 }
