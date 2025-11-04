@@ -8,6 +8,7 @@ use  App\Http\Controllers\API\Task\TaskController;
 use  App\Http\Controllers\API\WeeklyPayment\WeeklyPaymentController;
 use  App\Http\Controllers\API\KidMoney\KidTransactionController;
 use  App\Http\Controllers\API\ParentMoney\ParentTransactionController;
+use  App\Http\Controllers\API\SavingGoals\SavingGoalController;
 
 
 Route::post('/parents/register', [ParentAuthController::class, 'register']);
@@ -62,6 +63,8 @@ Route::middleware('auth:kid')->group(function () {
     Route::post('/kid/send-money', [KidTransactionController::class, 'sendMoney']);
     Route::get('/kid/sent-users', [KidTransactionController::class, 'sendUsers']);
     Route::get('/kid/wallet', [KidTransactionController::class, 'wallet']);
+    Route::get('/kid/{kid_id}/transactions', [KidTransactionController::class, 'getKidTransaction']);
+
 
 });
 
@@ -70,11 +73,16 @@ Route::middleware('auth:parent')->group(function () {
     Route::post('/parent/deposite-money', [ParentTransactionController::class, 'deposite']);
     Route::get('/parent/deposite-limit', [ParentTransactionController::class, 'depositeLimite']);
     Route::get('/parent/wallet', [ParentTransactionController::class, 'wallet']);
+    Route::post('/parent/transfer-money', [ParentTransactionController::class, 'transferMoney']);
+    Route::get('/parent/{parent_id}/transactions', [ParentTransactionController::class, 'getParentTransactions']);
+
 });
 
 
 Route::middleware(['auth:parent,kid'])->group(function () {
-    Route::post('/kids/saving-goals/create', [KidController::class, 'createGoal']);
+    Route::post('/kids/saving-goals/create', [SavingGoalController::class, 'createGoal']);
+    Route::post('/kids/saving-goals/{goal_id}/addMoney', [SavingGoalController::class, 'AddMoneyToGoal']);
+    Route::post('/kids/saving-goals/{goal_id}/collect', [SavingGoalController::class, 'collectGoal']);
 
 });
 

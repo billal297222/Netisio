@@ -1,13 +1,16 @@
 <?php
 
 namespace App\Http\Controllers\API\KidMoney;
+
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\ParentModel;
 use App\Models\Family;
 use App\Models\Kid;
 use App\Models\Task;
+use App\Models\Backend;
 use App\Models\KidTransaction;
+use App\Models\ParentTransaction;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Cache;
@@ -74,13 +77,13 @@ class KidTransactionController extends Controller
 
     }
 
-       public function sendUsers()
+    public function sendUsers()
     {
-         $kid = auth('kid')->user();
-         $transections = KidTransaction::where('kid_id',$kid->id)->where('type','send')
-                                        ->with(['receiverKid','receiverParent'])->orderBy('transaction_date', 'desc')->get();
+        $kid = auth('kid')->user();
+        $transections = KidTransaction::where('kid_id', $kid->id)->where('type', 'send')
+            ->with(['receiverKid', 'receiverParent'])->orderBy('transaction_date', 'desc')->get();
 
-        $result= $transections->map(function($tx){
+        $result = $transections->map(function ($tx) {
             return [
                 'transaction_id' => $tx->id,
                 'amount' => $tx->amount,
@@ -94,32 +97,98 @@ class KidTransactionController extends Controller
 
         return response()->json([
             'status' => 'success',
-            'send_users' =>$result
+            'send_users' => $result,
         ]);
     }
 
-    public  function wallet(){
-         $kid = auth('kid')->user();
+    public function wallet()
+    {
+        $kid = auth('kid')->user();
 
-         if(!$kid){
+        if (! $kid) {
             return response()->json([
                 'status' => 'failed',
                 'message' => 'user not found',
-            ],401);
-         }
+            ], 401);
+        }
 
-         return response()->json([
-              'status' => 'success',
-              'kid' => [
-                'id'=>$kid->id,
+        return response()->json([
+            'status' => 'success',
+            'kid' => [
+                'id' => $kid->id,
                 'full_name' => $kid->full_name,
-                'kavatar_url'=>$kid->kavatar ? url($kid->kavatar):null,
-                'balance'=>number_format($kid->balance,2),
-                'today_can_spend'=>number_format($kid->today_can_spend,2),
-               ]
+                'kavatar_url' => $kid->kavatar ? url($kid->kavatar) : null,
+                'balance' => number_format($kid->balance, 2),
+                'today_can_spend' => number_format($kid->today_can_spend, 2),
+            ],
 
-         ],201);
+        ], 201);
 
     }
+
+   public function getKidTransaction(Request $request, $kid_id)
+{
+    $kid = auth('kid')->user();
+
+    // Make sure the logged-in kid can only access their own transactions
+    if ($kid->id != $kid_id) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Unauthorized access to transactions.'
+        ], 403);
+    }
+
+    $transactions = KidTransaction::with([
+            'goal',
+            'senderParent',
+            'receiverKid',
+            'kid'
+        ])
+        ->where(function ($query) use ($kid_id) {
+            $query->where('kid_id', $kid_id)
+                  ->orWhere('receiver_kid_id', $kid_id);
+        })
+        ->latest()
+        ->get()
+        ->map(function ($t) use ($kid_id) {
+
+            $isSender = $t->kid_id === $kid_id;
+            $direction = $isSender ? 'Sent' : 'Received';
+            $relatedName = null;
+            $relatedAvatar = null;
+
+            if (in_array($t->type, ['saving', 'refund'])) {
+                $relatedName = $t->goal->title ?? 'Saving Goal';
+                $relatedAvatar = null;
+            } elseif ($isSender && $t->receiverKid) {
+                $relatedName = $t->receiverKid->full_name;
+                $relatedAvatar = $t->receiverKid->kavatar;
+            } elseif (!$isSender && $t->kid) {
+                $relatedName = $t->kid->full_name;
+                $relatedAvatar = $t->kid->kavatar;
+            } elseif (!$isSender && $t->senderParent) {
+                $relatedName = $t->senderParent->full_name;
+                $relatedAvatar = null;
+            }
+
+            return [
+                'id' => $t->id,
+                'type' => ucfirst($t->type),
+                'amount' => number_format($t->amount, 2),
+                'status' => ucfirst($t->status),
+                'direction' => $direction,
+                'related_name' => $relatedName,
+                'avatar' => $relatedAvatar,
+                'goal_title' => $t->goal->title ?? null,
+                'date' => $t->created_at->format('Y-m-d'),
+                'time' => $t->created_at->format('H:i:s'),
+            ];
+        });
+
+    return response()->json([
+        'status' => 'success',
+        'transactions' => $transactions
+    ]);
 }
 
+}

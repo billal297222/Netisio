@@ -20,6 +20,10 @@ class ParentTransaction extends Model
         'message',
         'transaction_datetime',
     ];
+    protected $casts = [
+    'transaction_datetime' => 'datetime',
+];
+
 
     // Relation to parent
     public function parent()

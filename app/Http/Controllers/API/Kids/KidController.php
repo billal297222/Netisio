@@ -93,67 +93,7 @@ class KidController extends Controller
         ]);
     }
 
-    public function createGoal(Request $request)
-    {
-        $request->validate([
-            'kid_id' => 'nullable|exists:kids,id',
-            'title' => 'required|string|max:150',
-            'description' => 'nullable|string|max:200',
-            'target_amount' => 'required|numeric|min:0.01',
-        ]);
-
-        $kid = null;
-        $createdByParentId = null;
-
-        if (auth('kid')->check()) {
-            $kid = auth('kid')->user();
-
-        } elseif (auth('parent')->check()) {
-            $parent = auth('parent')->user();
-
-            if (! $request->kid_id) {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => 'kid_id is required when parent creates a goal.',
-                ], 422);
-            }
-
-            $kid = Kid::where('id', $request->kid_id)
-                ->where('parent_id', $parent->id)
-                ->first();
-
-            if (! $kid) {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => 'Invalid kid or kid not associated with this parent.',
-                ], 403);
-            }
-
-            $createdByParentId = $parent->id;
-        } else {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Unauthorized user.',
-            ], 401);
-        }
-
-        $goal = Saving::create([
-            'kid_id' => $kid->id,
-            'title' => $request->title,
-            'description' => $request->description ?? '',
-            'target_amount' => $request->target_amount,
-            'saved_amount' => 0.00,
-            'status' => 'in_progress',
-            'created_by_parent_id' => $createdByParentId,
-        ]);
-
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Saving goal created successfully.',
-            'goal' => $goal,
-        ]);
-    }
-
+    
     public function AddMoney(Request $request, $goal_id)
     {
         $kid = auth('kid')->user();

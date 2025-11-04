@@ -15,6 +15,7 @@ class KidTransaction extends Model
         'kid_id',
         'receiver_kid_id',
         'sender_parent_id',
+        'saving_goal_id',
         'type',
         'amount',
         'status',
@@ -22,18 +23,32 @@ class KidTransaction extends Model
         'note',
     ];
 
+    // Sender kid
     public function senderKid()
     {
         return $this->belongsTo(Kid::class, 'kid_id');
     }
+    public function kid()
+{
+    return $this->belongsTo(Kid::class, 'kid_id');
+}
 
+
+    // Receiver kid
     public function receiverKid()
     {
         return $this->belongsTo(Kid::class, 'receiver_kid_id');
     }
 
-    public function receiverParent()
+    // Parent who sent money
+    public function senderParent()
     {
         return $this->belongsTo(ParentModel::class, 'sender_parent_id');
+    }
+
+    // Related saving goal
+    public function goal()
+    {
+        return $this->belongsTo(Saving::class, 'saving_goal_id');
     }
 }
