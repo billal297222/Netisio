@@ -22,6 +22,7 @@ class ParentModel extends Authenticatable implements JWTSubject
         'email_otp',
         'otp_expires_at',
         'p_unique_id',
+        'pavatar',
     ];
 
     protected $hidden = [

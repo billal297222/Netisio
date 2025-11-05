@@ -24,7 +24,7 @@ Route::post('/kids/login', [ParentAuthController::class, 'klogin']);
 Route::middleware('auth:parent')->group(function () {
     Route::post('/parents/profile/edit', [ParentController::class, 'ParentProfileEdit']);
     Route::post('/parents/change-password', [ParentController::class, 'changePassword']);
-    Route::get('/parents/my-family', [ParentController::class, 'myFamily']);
+   // Route::get('/parents/my-family', [ParentController::class, 'myFamily']);
    // Route::post('/kids/savings-goal', [KidController::class, 'createGoal']);
    Route::post('/parent/tasks/today', [TaskController::class, 'createTask']);
    Route::post('/parent/weekly-payments', [WeeklyPaymentController::class, 'createWeeklyPayment']);
@@ -38,7 +38,7 @@ Route::middleware('auth:parent')->group(function () {
 Route::middleware('auth:kid')->group(function () {
     Route::post('/kids/profile/edits', [KidController::class, 'KidProfileEdit']);
     Route::post('/kids/change/password', [KidController::class, 'changePassword']);
-    Route::get('/kids/my-family', [KidController::class, 'myFamily']);
+   // Route::get('/kids/my-family', [KidController::class, 'myFamily']);
    // Route::post('/kids/savings-goal', [KidController::class, 'createGoal']);
     Route::post('/kids/saving-goals/{goal_id}/add', [KidController::class, 'AddMoney']);
     Route::get('/kid/saving-goal/all', [KidController::class, 'getKidSaving']);
@@ -78,14 +78,30 @@ Route::middleware('auth:parent')->group(function () {
 
 });
 
-
+// both
 Route::middleware(['auth:parent,kid'])->group(function () {
     Route::post('/kids/saving-goals/create', [SavingGoalController::class, 'createGoal']);
     Route::post('/kids/saving-goals/{goal_id}/addMoney', [SavingGoalController::class, 'AddMoneyToGoal']);
     Route::post('/kids/saving-goals/{goal_id}/collect', [SavingGoalController::class, 'collectGoal']);
+    Route::get('/family/my-family', [ParentController::class, 'myFamily']);
+     Route::get('/profile/my-profile', [ParentController::class, 'myProfile']);
 
 });
 
+
+// parent task payment goals
+ Route::middleware('auth:parent')->group(function () {
+    Route::get('/parent/kid-info/{kid_id}', [ParentController::class, 'getKidInfo']);
+    Route::get('/parent/kid-task/{kid_id}', [ParentController::class, 'getAssignTask']);
+    Route::get('/parent/kid-goals/{kid_id}', [ParentController::class, 'getAssignGoal']);
+    Route::get('/parent/kid-payment/{kid_id}', [ParentController::class, 'getAssignPayment']);
+    // all
+    Route::get('/parent/assign-task/all', [ParentController::class, 'AssignAllTask']);
+    Route::get('/parent/assign-goal/all', [ParentController::class, 'AssignAllGoal']);
+    Route::get('/parent/assign-payment/all', [ParentController::class, 'AssignAllPayment']);
+    Route::get('/parent/all-membar/assign', [ParentController::class, 'allMemberAssign']);
+
+});
 
 
 
