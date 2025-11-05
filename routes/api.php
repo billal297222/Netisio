@@ -89,7 +89,7 @@ Route::middleware(['auth:parent,kid'])->group(function () {
 });
 
 
-// parent task payment goals
+// parent task payment goals dg
  Route::middleware('auth:parent')->group(function () {
     Route::get('/parent/kid-info/{kid_id}', [ParentController::class, 'getKidInfo']);
     Route::get('/parent/kid-task/{kid_id}', [ParentController::class, 'getAssignTask']);
