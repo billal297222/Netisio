@@ -5,10 +5,13 @@ namespace App\Http\Controllers\API\WeeklyPayment;
 use App\Http\Controllers\Controller;
 use App\Models\Kid;
 use App\Models\WeeklyPayment;
+use App\Services\FcmService;
 use Illuminate\Http\Request;
+use App\Traits\ApiResponse;
 
 class WeeklyPaymentController extends Controller
 {
+    use ApiResponse;
     public function createWeeklyPayment(Request $request)
     {
         $parent = auth('parent')->user();
@@ -71,6 +74,31 @@ class WeeklyPaymentController extends Controller
             'status' => 'paid',
         ]);
 
+        // Use FcmService-------------------------------------
+        try {
+            $fcmService = new FcmService;
+
+            // Send to the kid
+            $fcmService->sendToToken(
+                $kid->fcm_token,
+                'Weekly Payment Completed!',
+                'Paid '.number_format($task->amount, 2).' for the payment "'.$payment->title.'"'
+            );
+
+            // Send to the parent
+            if ($kid->parent && $kid->parent->fcm_token) {
+                $fcmService->sendToToken(
+                    $kid->parent->fcm_token,
+                    $kid->full_name.' completed a task!',
+                    'paid: '.number_format($payment->amount, 2).' for "'.$payment->title.'"'
+                );
+            }
+        } catch (\Exception $e) {
+            \Log::error('FCM Error: '.$e->getMessage());
+        }
+
+        // ---------------------------
+
         return response()->json([
             'message' => 'Weekly payment successfully paid!',
             'weekly_payment' => $payment,
@@ -88,5 +116,27 @@ class WeeklyPaymentController extends Controller
             'message' => 'Weekly payment retrieved successfully.',
             'tasks' => $payment,
         ]);
+    }
+
+    public function requestMoneyPayment(Request $request, $payment_id)
+    {
+        $kid = auth('kid')->user();
+        $payment = WeeklyPayment::where('id', $payment_id)->where('kid_id', $kid->id)->first();
+        $parent = $kid->parent;
+
+        $need = $payment->amount - $kid->balance;
+
+        // Send FCM notification to parent
+        try {
+            $fcmService = new FcmService;
+            $fcmService->sendToToken(
+                $parent->fcm_token,
+                $kid->full_name.' Out of money!',
+                'Need'.number_format($payment->amount, 2).' to payment "'.$payment->title.'"'
+            );
+        } catch (\Exception $e) {
+            \Log::error('FCM Error: '.$e->getMessage());
+        }
+
     }
 }

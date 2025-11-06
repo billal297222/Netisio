@@ -18,11 +18,13 @@ class Saving extends Model
         'saved_amount',
         'status',
         'created_by_parent_id',
+
     ];
 
     protected $casts = [
         'target_amount' => 'decimal:2',
         'saved_amount' => 'decimal:2',
+        'progress_percentage' => 'decimal:2',
     ];
 
     public function kid()

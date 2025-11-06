@@ -46,6 +46,8 @@ Route::middleware('auth:kid')->group(function () {
     Route::get('/kid/weekly-payment/all', [WeeklyPaymentController::class, 'getKidPayment']);
     Route::get('/kid/profile', [KidController::class, 'KidProfile']);
     Route::post('/kids/logout', [KidController::class, 'klogout']);
+    Route::post('/kid/payment/request-money/{payment_id}', [WeeklyPaymentController::class, 'requestMoneyPayment']);
+
 
 });
 
@@ -61,9 +63,11 @@ Route::middleware('auth:kid')->group(function () {
 // kids money
 Route::middleware('auth:kid')->group(function () {
     Route::post('/kid/send-money', [KidTransactionController::class, 'sendMoney']);
+    Route::post('/kid/request-money', [KidTransactionController::class, 'requestMoney']);
     Route::get('/kid/sent-users', [KidTransactionController::class, 'sendUsers']);
     Route::get('/kid/wallet', [KidTransactionController::class, 'wallet']);
     Route::get('/kid/{kid_id}/transactions', [KidTransactionController::class, 'getKidTransaction']);
+
 
 
 });
@@ -100,6 +104,8 @@ Route::middleware(['auth:parent,kid'])->group(function () {
     Route::get('/parent/assign-goal/all', [ParentController::class, 'AssignAllGoal']);
     Route::get('/parent/assign-payment/all', [ParentController::class, 'AssignAllPayment']);
     Route::get('/parent/all-membar/assign', [ParentController::class, 'allMemberAssign']);
+    Route::get('/parent/kids/recent-activity', [ParentController::class, 'recentActivity']);
+
 
 });
 

@@ -9,11 +9,14 @@ use App\Models\KidTransaction;
 use App\Models\ParentTransaction;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use App\Traits\ApiResponse;
 
 class ParentTransactionController extends Controller
 {
+    use ApiResponse;
     public function deposite(Request $request)
     {
+
         $parent = auth('parent')->user();
 
         $request->validate([

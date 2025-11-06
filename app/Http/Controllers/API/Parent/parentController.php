@@ -10,9 +10,12 @@ use App\Models\Task;
 use App\Models\WeeklyPayment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Collection;
+use App\Traits\ApiResponse;
 
 class parentController extends Controller
 {
+    use ApiResponse;
     public function ParentProfileEdit(Request $request)
     {
         $parent = auth('parent')->user(); // JWT-authenticated parent
@@ -38,10 +41,7 @@ class parentController extends Controller
             $family = Family::where('created_by_parent', $parent->id)->first();
 
             if (! $family) {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => 'No family found for this parent',
-                ], 404);
+                return $this->error('','No family found for this parent',404);
             }
 
             $file = $request->file('favatar');
@@ -51,11 +51,7 @@ class parentController extends Controller
             $family->save();
         }
 
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Profile updated successfully',
-            'parent' => $parent,
-        ]);
+        return $this->success($parent,'Profile updated successfully',201);
     }
 
     public function changePassword(Request $request)
@@ -63,10 +59,8 @@ class parentController extends Controller
         $parent = auth('parent')->user();
 
         if (! $parent) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Unauthorized or invalid token',
-            ], 401);
+
+            return $this->error('','Unauthorized or invalid token',401);
         }
 
         $request->validate([
@@ -75,10 +69,8 @@ class parentController extends Controller
         ]);
 
         if (! Hash::check($request->current_password, $parent->password)) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Current password is incorrect',
-            ], 401);
+
+             return $this->error('','Current password is incorrect',401);
         }
 
         $parent->password = Hash::make($request->new_password);
@@ -88,6 +80,7 @@ class parentController extends Controller
             'status' => 'success',
             'message' => 'Password changed successfully',
         ]);
+        return $this->success('','Password changed successfully',201);
     }
 
     // public function myFamily(Request $request)
@@ -118,10 +111,8 @@ class parentController extends Controller
         $kid = auth('kid')->user();
 
         if (! $parent && ! $kid) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Unauthorized or invalid token',
-            ], 401);
+
+            return $this->error('','Unauthorized or invalid token',401);
         }
 
         $familyId = $parent ? $parent->id : $kid->family_id;
@@ -131,10 +122,8 @@ class parentController extends Controller
             ->first();
 
         if (! $family) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Family not found',
-            ], 404);
+
+            return $this->error('','Family not found',401);
         }
 
         $members = collect([]);
@@ -159,12 +148,13 @@ class parentController extends Controller
             ]);
         }
 
-        return response()->json([
-            'status' => 'success',
+
+        $data = [
             'family_name' => $family->name,
             'total_members' => $members->count(),
             'members' => $members,
-        ]);
+        ];
+        return $this->success($data,'Family Member list',201);
     }
 
     public function createGoal(Request $request)
@@ -183,10 +173,8 @@ class parentController extends Controller
             ->first();
 
         if (! $kid) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Invalid kid ID or kid does not belong to this parent.',
-            ], 403);
+
+             return $this->error('','Invalid kid ID or kid does not belong to this parent',403);
         }
 
         $goal = Saving::create([
@@ -199,11 +187,8 @@ class parentController extends Controller
             'created_by_parent_id' => $parent->id,
         ]);
 
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Saving goal created successfully for kid: '.$kid->full_name,
-            'goal' => $goal,
-        ]);
+
+        return $this->success($goal,'Saving goal created successfully for kid: '.$kid->full_name,201);
     }
 
     // kid info -----------------------------------------------------
@@ -215,23 +200,19 @@ class parentController extends Controller
         $kid = $parent->kids()->select('id', 'full_name', 'k_unique_id', 'kavatar', 'balance', 'today_can_spend', 'family_id')
             ->with('family:id,name,favatar')->where('id', $kid_id)->first();
         if (! $kid) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'kids not found',
-            ], 404);
+
+             return $this->error('','kids not found',404);
         }
 
-        return response()->json([
-            'status' => 'success',
-            'kid' => [
+        $data = [
                 'id' => $kid->id,
                 'name' => $kid->full_name,
                 'unique_id' => $kid->unique_id,
                 'avatar' => $kid->kavatar ? url($kid->kavatar) : null,
                 'balance' => number_format($kid->balance, 2),
                 'today_can_spend' => number_format($kid->today_can_spend, 2),
-            ],
-        ]);
+        ];
+        return $this->success($data,'Kid Information',201);
 
     }
 
@@ -242,24 +223,22 @@ class parentController extends Controller
         $kid = Kid::where('id', $kid_id)->where('parent_id', $parent->id)->first();
 
         if (! $kid) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'kids not found',
-            ], 404);
+
+            return $this->error('','kids not found',404);
         }
         $tasks = Task::where('kid_id', $kid->id)->latest()->get(['id', 'title', 'description', 'reward_amount', 'status']);
 
-        return response()->json([
-            'status' => 'success',
-            'kid' => [
+         $data = [
                 'id' => $kid->id,
                 'name' => $kid->full_name,
                 'avatar' => $kid->kavatar ? url($kid->kavatar) : null,
-            ],
-            'tasks' => $tasks,
-        ]);
+                'tasks' => $tasks,
+             ];
+             return $this->success($data,'Assign Task to the kids',201);
 
     }
+
+    //---------------------------------- 5 tarikh
 
     public function getAssignGoal($kid_id)
     {
@@ -496,7 +475,89 @@ class parentController extends Controller
             'message' => 'Unauthorized',
         ], 401);
     }
-   
+
+    public function recentActivity(){
+        $parent = auth('parent')->user();
+
+        if (! $parent) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Unauthorized or invalid token'
+            ], 401);
+        }
+
+        $kids = Kid::where('parent_id', $parent->id)->pluck('id');
+
+        $tasks = Task::whereIn('kid_id', $kids)
+            ->latest('updated_at')
+            ->take(10)
+            ->get(['id', 'kid_id', 'title', 'status', 'updated_at']);
+
+        $goals = Saving::whereIn('kid_id', $kids)
+            ->latest('updated_at')
+            ->take(10)
+            ->get(['id', 'kid_id', 'title', 'status', 'progress_percentage', 'updated_at']);
+
+        $payments = WeeklyPayment::whereIn('kid_id', $kids)
+            ->latest('updated_at')
+            ->take(10)
+            ->get(['id', 'kid_id', 'title', 'status', 'updated_at']);
+
+        $activities = new Collection();
+
+        foreach ($tasks as $task) {
+            $kid = $task->kid;
+            if (!$kid) continue;
+
+            if ($task->status === 'completed') {
+                $activities->push([
+                    'message' => "{$kid->full_name} completed the task \"{$task->title}\".",
+                    'type' => 'task',
+                    'time' => $task->updated_at,
+                ]);
+            }
+        }
+
+        foreach ($goals as $goal) {
+            $kid = $goal->kid;
+            if (!$kid) continue;
+
+            if ($goal->status === 'completed') {
+                $activities->push([
+                    'message' => "{$kid->full_name} completed the goal \"{$goal->title}\".",
+                    'type' => 'goal',
+                    'time' => $goal->updated_at,
+                ]);
+            } else {
+                $activities->push([
+                    'message' => "{$kid->full_name} reached {$goal->progress_percentage}% of \"{$goal->title}\" goal.",
+                    'type' => 'goal',
+                    'time' => $goal->updated_at,
+                ]);
+            }
+        }
+
+        foreach ($payments as $payment) {
+            $kid = $payment->kid;
+            if (!$kid) continue;
+
+            if ($payment->status === 'paid') {
+                $activities->push([
+                    'message' => "{$kid->full_name} received payment for \"{$payment->title}\".",
+                    'type' => 'payment',
+                    'time' => $payment->updated_at,
+                ]);
+            }
+        }
+
+        $sorted = $activities->sortByDesc('time')->values();
+
+        return response()->json([
+            'status' => 'success',
+            'activities' => $sorted,
+        ]);
+    }
+
 }
 
 

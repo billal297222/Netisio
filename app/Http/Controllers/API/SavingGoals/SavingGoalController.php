@@ -7,9 +7,12 @@ use App\Models\Kid;
 use App\Models\KidTransaction;
 use App\Models\Saving;
 use Illuminate\Http\Request;
+use App\Services\FcmService;
+use App\Traits\ApiResponse;
 
 class SavingGoalController extends Controller
 {
+    use ApiResponse;
     public function createGoal(Request $request)
     {
 
@@ -65,6 +68,27 @@ class SavingGoalController extends Controller
             'created_by_parent_id' => $createdByParentId,
         ]);
 
+
+        if(!$parent){
+             // Use FcmService-------------------------------------
+        try {
+            $fcmService = new FcmService;
+
+            // Send to the parent
+            if ($kid->parent && $kid->parent->fcm_token) {
+                $fcmService->sendToToken(
+                    $kid->parent->fcm_token,
+                    $kid->full_name.' created a Goal!',
+                     'Goal: "' . $goal->title . '" with target amount: ' . number_format($goal->target_amount, 2)
+                );
+            }
+        } catch (\Exception $e) {
+            \Log::error('FCM Error: '.$e->getMessage());
+        }
+
+        // ---------------------------
+        }
+
         return response()->json([
             'status' => 'success',
             'message' => 'Saving goal created successfully.',
@@ -92,6 +116,34 @@ class SavingGoalController extends Controller
         }
 
         if ($goal->status === 'completed') {
+
+
+        // Use FcmService-------------------------------------
+        try {
+            $fcmService = new FcmService;
+
+            // Send to the kid
+            $fcmService->sendToToken(
+                $kid->fcm_token,
+                'Goal Completed!',
+                'You  Completed the Goal "'.$goal->title.'"'
+            );
+
+            // Send to the parent
+            if ($kid->parent && $kid->parent->fcm_token) {
+                $fcmService->sendToToken(
+                    $kid->parent->fcm_token,
+                    $kid->full_name.' completed a Goal!',
+                    'The Completed is "'.$goal->title.'"'
+                );
+            }
+        } catch (\Exception $e) {
+            \Log::error('FCM Error: '.$e->getMessage());
+        }
+
+        // ---------------------------
+
+
             return response()->json([
                 'status' => 'error',
                 'message' => ' Goals already completed',
@@ -124,6 +176,7 @@ class SavingGoalController extends Controller
             'status' => 'completed',
             'transaction_date' => now(),
             'note' => 'Added to saving goal: '.$goal->title,
+            'progress_percentage' =>$progress,
         ]);
 
         return response()->json([

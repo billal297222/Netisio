@@ -18,9 +18,12 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Tymon\JWTAuth\Facades\JWTAuth;
 use Carbon\Carbon;
+use App\Services\FcmService;
+use App\Traits\ApiResponse;
 
 class KidTransactionController extends Controller
 {
+    use ApiResponse;
     public function sendMoney(Request $request)
     {
         $kid = auth('kid')->user();
@@ -31,21 +34,16 @@ class KidTransactionController extends Controller
         ]);
 
         if ($kid->balance < $request->amount) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Insufficient balance',
-            ], 400);
+            return $this->error('','Insufficient balance',400);
         }
+
         $receiverKid = Kid::where('k_unique_id', $request->receiver_unique_id)->first();
         $receiverParent = null;
 
         if (! $receiverKid) {
             $receiverParent = ParentModel::where('p_unique_id', $request->receiver_unique_id)->first();
             if (! $receiverParent) {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => 'Receiver not found',
-                ], 404);
+                return $this->error('','Receiver not found',404);
             }
         }
 
@@ -69,11 +67,41 @@ class KidTransactionController extends Controller
             'status' => 'completed',
         ]);
 
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Money sent successfully',
-            'transaction' => $transaction,
-        ]);
+        // return response()->json([
+        //     'status' => 'success',
+        //     'message' => 'Money sent successfully',
+        //     'transaction' => $transaction,
+        // ]);
+        return $this->success($transaction,'Money sent successfully',200);
+
+    }
+    public function requestMoney(Request $request){
+         $kid = auth('kid')->user();
+         $request->validate([
+            'money'=>'required|numeric|min:0.01',
+            'note' =>'string|nullable',
+         ]);
+
+         $parent = $kid->parent;
+
+
+        // Send FCM notification to parent
+        try {
+            $fcmService = new FcmService();
+            $fcmService->sendToToken(
+                $parent->fcm_token,
+                $kid->full_name . ' requested money!',
+                'Amount: ' . number_format($request->amount, 2) . ($request->note ? ' - Note: '.$request->note : '')
+            );
+        } catch (\Exception $e) {
+            \Log::error('FCM Error: '.$e->getMessage());
+        }
+
+        // return response()->json([
+        //     'status' => 'success',
+        //     'message' => 'Money request sent to parent successfully!',
+        // ]);
+        return $this->error('','Money request sent to parent successfully!',401);
 
     }
 
@@ -95,10 +123,11 @@ class KidTransactionController extends Controller
             ];
         });
 
-        return response()->json([
-            'status' => 'success',
-            'send_users' => $result,
-        ]);
+
+        return $this->success($result,'Transactions send users',200);
+
+
+
     }
 
     public function wallet()
@@ -106,23 +135,20 @@ class KidTransactionController extends Controller
         $kid = auth('kid')->user();
 
         if (! $kid) {
-            return response()->json([
-                'status' => 'failed',
-                'message' => 'user not found',
-            ], 401);
+
+            return $this->error('','user not found',401);
         }
 
-        return response()->json([
-            'status' => 'success',
-            'kid' => [
-                'id' => $kid->id,
-                'full_name' => $kid->full_name,
-                'kavatar_url' => $kid->kavatar ? url($kid->kavatar) : null,
-                'balance' => number_format($kid->balance, 2),
-                'today_can_spend' => number_format($kid->today_can_spend, 2),
-            ],
 
-        ], 201);
+        $data = [
+            'id' => $kid->id,
+            'full_name' => $kid->full_name,
+            'kavatar_url' => $kid->kavatar ? url($kid->kavatar) : null,
+            'balance' => number_format($kid->balance, 2),
+            'today_can_spend' => number_format($kid->today_can_spend, 2),
+        ];
+
+        return $this->success($data,'Wallet info',201);
 
     }
 
@@ -130,12 +156,9 @@ class KidTransactionController extends Controller
 {
     $kid = auth('kid')->user();
 
-    // Make sure the logged-in kid can only access their own transactions
     if ($kid->id != $kid_id) {
-        return response()->json([
-            'status' => 'error',
-            'message' => 'Unauthorized access to transactions.'
-        ], 403);
+
+        return $this->error('','Unauthorized access to transactions.',403);
     }
 
     $transactions = KidTransaction::with([
@@ -185,10 +208,8 @@ class KidTransactionController extends Controller
             ];
         });
 
-    return response()->json([
-        'status' => 'success',
-        'transactions' => $transactions
-    ]);
+
+    return $this->success($transactions,'Your Transactions',201);
 }
 
 }

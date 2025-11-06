@@ -8,12 +8,14 @@ use App\Models\Kid;
 use App\Models\Saving;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use App\Traits\ApiResponse;
 
 class KidController extends Controller
 {
+    use ApiResponse;
     public function KidProfileEdit(Request $request)
     {
-        $kid = auth('kid')->user(); // JWT-authenticated kid
+        $kid = auth('kid')->user();
         $request->validate([
             'full_name' => 'nullable|string|max:100',
             'kavatar' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
@@ -37,11 +39,7 @@ class KidController extends Controller
 
         $kid->save();
 
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Profile updated successfully',
-            'kid' => $kid,
-        ]);
+        return $this->success($kid,'Profile updated successfully',201);
 
     }
 
@@ -54,19 +52,14 @@ class KidController extends Controller
         ]);
 
         if (! Hash::check($request->current_password, $kid->password)) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Current password is incorrect',
-            ], 401);
+
+            return $this->error('','Current password is incorrect',401);
         }
 
         $kid->password = Hash::make($request->new_password);
         $kid->save();
 
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Password changed successfully',
-        ]);
+        return $this->success('', 'Password changed successfully',201);
     }
 
     public function myFamily(Request $request)
@@ -74,10 +67,7 @@ class KidController extends Controller
         $parent = auth('kid')->user();
 
         if (! $parent) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Unauthorized or invalid token',
-            ], 401);
+            return $this->error('','Unauthorized or invalid token',401);
         }
 
         $families = Family::with([
@@ -87,13 +77,10 @@ class KidController extends Controller
             ->where('created_by_parent', $parent->id)
             ->get();
 
-        return response()->json([
-            'status' => 'success',
-            'families' => $families,
-        ]);
+        return $this->success($families,'Your Family information',201);
     }
 
-    
+
     public function AddMoney(Request $request, $goal_id)
     {
         $kid = auth('kid')->user();
@@ -104,27 +91,18 @@ class KidController extends Controller
         $goal = Saving::where('id', $goal_id)->where('kid_id', $kid->id)->first();
 
         if (! $goal) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Saving goal not found',
-            ], 404);
+            return $this->error('','Saving goal not found',404);
         }
 
         if ($goal->status == 'completed') {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'This saving goal is already completed.',
-            ], 400);
+            return $this->error('','This saving goal is already completed.',400);
         }
 
         $newAmount = $goal->saved_amount + $request->amount;
 
         if ($newAmount > $goal->target_amount) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Amount exceeds target goal. You can only add up to '
-                             .number_format($goal->target_amount - $goal->saved_amount, 2).' more.',
-            ], 400);
+            $overMoney = number_format($goal->target_amount - $goal->saved_amount, 2);
+            return $this->error($overMoney,'Amount exceeds target goal. You can only add up to',400);
 
         }
 
@@ -134,11 +112,7 @@ class KidController extends Controller
         }
         $goal->save();
 
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Amount added successfully',
-            'goal' => $goal,
-        ]);
+        return $this->success($goal,'Amount added successfully',201);
     }
 
     public function getKidSaving()
@@ -146,26 +120,21 @@ class KidController extends Controller
         $kid = auth('kid')->user();
         $goals = Saving::where('kid_id', $kid->id)->orderBy('created_at', 'desc')->get();
 
-        return response()->json([
-            'message' => 'saving goals retrieved successfully.',
-            'tasks' => $goals,
-        ]);
+        return $this->success($goals, 'saving goals retrieved successfully.',201);
     }
 
     public function KidProfile()
     {
         $kid = auth('kid')->user();
 
-        return response()->json([
-            'message' => 'Kid profile retrieved successfully.',
-            'profile' => [
+         $profile = [
                 'id' => $kid->id,
                 'full_name' => $kid->full_name,
                 'avatar' => $kid->kavatar ? url($kid->kavatar) : null,
                 'today_can_spend' => (float) $kid->today_can_spend,
                 'total_balance' => (float) $kid->balance,
-            ],
-        ], 200);
+         ];
+        return $this->success($profile,'Kid profile retrieved successfully.',201);
     }
 
     public function updateTodayCanSpend(Request $request, $kidId)
@@ -181,25 +150,19 @@ class KidController extends Controller
             ->first();
 
         if (! $kid) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Kid not found',
-            ], 404);
+            return $this->error('','Kid not found',404);
         }
 
         $kid->today_can_spend = $request->today_can_spend;
         $kid->save();
 
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Today spend updated successfully',
-            'kid' => [
+        $data = [
                 'id' => $kid->id,
                 'username' => $kid->username,
                 'today_can_spend' => $kid->today_can_spend,
                 'balance' => $kid->balance,
-            ],
-        ]);
+        ];
+        return $this->success($data,'Today spend updated successfully',201);
     }
 
     public function klogout()
@@ -213,13 +176,11 @@ class KidController extends Controller
                 'status' => 'success',
                 'message' => 'kid logged out successfully',
             ]);
+            return $this->success('','kid logged out successfully',201);
 
         } catch (\Tymon\JWTAuth\Exceptions\JWTException $e) {
 
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Failed to logout, please try again',
-            ], 500);
+             return $this->error('','Failed to logout, please try again',500);
         }
     }
 }

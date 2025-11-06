@@ -16,9 +16,11 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Tymon\JWTAuth\Facades\JWTAuth;
+use App\Traits\ApiResponse;
 
 class ParentAuthController extends Controller
 {
+    use ApiResponse;
     // Register parent (send OTP)
     public function register(Request $request)
     {
@@ -43,17 +45,12 @@ class ParentAuthController extends Controller
         try {
             Mail::to($request->email)->send(new SendOtpMail($otp));
         } catch (\Exception $e) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Failed to send OTP email: '.$e->getMessage(),
-            ], 500);
+
+            return $this->error('','Failed to send OTP email: '.$e->getMessage(),500);
         }
 
-        return response()->json([
-            'status' => 'success',
-            'message' => 'OTP sent to your email',
-            'cache_key' => $cacheKey,
-        ]);
+
+        return $this->success($cacheKey,'OTP sent to your email',200);
     }
 
     // Verify OTP and create parent account
@@ -67,17 +64,13 @@ class ParentAuthController extends Controller
         $data = Cache::get($request->cache_key);
 
         if (! $data) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'OTP expired or invalid',
-            ], 400);
+
+            return $this->error('','OTP expired or invalid',400);
         }
 
         if ($data['otp'] != $request->otp) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Invalid OTP',
-            ], 400);
+
+            return $this->error('','Invalid OTP',400);
         }
 
         do {
@@ -100,12 +93,17 @@ class ParentAuthController extends Controller
 
         Cache::forget($request->cache_key);
 
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Parent registered successfully',
+        // return response()->json([
+        //     'status' => 'success',
+        //     'message' => 'Parent registered successfully',
+        //     'parent_id' => $parent->id,
+        //     'p_unique_id' => $parent->p_unique_id,
+        // ]);
+        $data =[
             'parent_id' => $parent->id,
             'p_unique_id' => $parent->p_unique_id,
-        ]);
+        ];
+        return $this->success($data,'Parent registered successfully',200);
     }
 
     // Parent login
@@ -119,20 +117,18 @@ class ParentAuthController extends Controller
         $parent = ParentModel::where('email', $request->email)->first();
 
         if (! $parent || ! Hash::check($request->password, $parent->password)) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Invalid email or password',
-            ], 401);
+
+            return $this->error('','Invalid email or password',401);
         }
 
         $token = JWTAuth::fromUser($parent);
 
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Login successful',
-            'parent_id' => $parent->id,
-            'token' => $token,
-        ]);
+        $data = [
+             'parent_id' => $parent->id,
+             'token' => $token,
+        ];
+
+        return $this->success($data,'Login successful',200);
     }
 
     // Create Family
@@ -158,12 +154,11 @@ class ParentAuthController extends Controller
             'created_by_parent' => $request->parent_id,
         ]);
 
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Family created successfully',
-            'family_id' => $family->id,
-            'favatar_url' => $favatar,
-        ]);
+        $data = [
+             'family_id' => $family->id,
+             'favatar_url' => $favatar,
+        ];
+        return $this->success($data,'Family created successfully',200);
     }
 
     // Create Kid
@@ -191,12 +186,13 @@ class ParentAuthController extends Controller
             'k_unique_id' => $k_unique_id,
         ]);
 
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Kid account created successfully',
+
+        $data = [
             'kid_id' => $kid->id,
             'k_unique_id' => $kid->k_unique_id,
-        ]);
+        ];
+
+        return $this->success($data,'Kid account created successfully',200);
     }
 
     // Kid login
@@ -210,20 +206,17 @@ class ParentAuthController extends Controller
         $kid = Kid::where('username', $request->username)->first();
 
         if (! $kid || ! Hash::check($request->password, $kid->password)) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Invalid username or password',
-            ], 401);
+
+            return $this->error('','Invalid username or password',401);
         }
 
         $token = JWTAuth::fromUser($kid);
 
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Login successful',
+        $data = [
             'kid_id' => $kid->id,
             'token' => $token,
-        ]);
+        ];
+        return $this->success($data,'Login successful',200);
     }
 
     public function plogout()
@@ -232,17 +225,12 @@ class ParentAuthController extends Controller
 
             $token = auth('parent')->getToken();
             auth('parent')->invalidate($token);
-             return response()->json([
-            'status' => 'success',
-            'message' => 'Parent logged out successfully'
-        ]);
+
+        return $this->success('','Parent logged out successfully',200);
 
         }catch(\Tymon\JWTAuth\Exceptions\JWTException $e){
 
-            return response()->json([
-            'status' => 'error',
-            'message' => 'Failed to logout, please try again'
-        ], 500);
+        return $this->error('','Failed to logout, please try again',500);
         }
     }
 }
