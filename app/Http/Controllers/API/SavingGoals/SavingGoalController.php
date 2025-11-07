@@ -33,10 +33,8 @@ class SavingGoalController extends Controller
             $parent = auth('parent')->user();
 
             if (! $request->kid_id) {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => 'kid_id is required when parent creates a goal.',
-                ], 422);
+
+                return $this->error('','kid_id is required when parent creates a goal.',422);
             }
 
             $kid = Kid::where('id', $request->kid_id)
@@ -44,18 +42,14 @@ class SavingGoalController extends Controller
                 ->first();
 
             if (! $kid) {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => 'Invalid kid or kid not associated with this parent.',
-                ], 403);
+
+                return $this->error('','Invalid kid or kid not associated with this parent.',403);
             }
 
             $createdByParentId = $parent->id;
         } else {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Unauthorized user.',
-            ], 401);
+
+            return $this->error('','Unauthorized user.',401);
         }
 
         $goal = Saving::create([
@@ -89,11 +83,8 @@ class SavingGoalController extends Controller
         // ---------------------------
         }
 
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Saving goal created successfully.',
-            'goal' => $goal,
-        ]);
+        return $this->success($goal,'Saving goal created successfully.',201);
+
     }
 
     // AddMoneyToGoal
@@ -109,10 +100,8 @@ class SavingGoalController extends Controller
 
         $goal = Saving::where('id', $goal_id)->where('kid_id', $kid->id)->first();
         if (! $goal) {
-            return response()->json([
-                'status' => 'error',
-                'message' => ' Goals not found.',
-            ], 401);
+
+            return $this->error('','Goals not found.',401);
         }
 
         if ($goal->status === 'completed') {
@@ -143,20 +132,14 @@ class SavingGoalController extends Controller
 
         // ---------------------------
 
-
-            return response()->json([
-                'status' => 'error',
-                'message' => ' Goals already completed',
-            ], 201);
+            return $this->error('',' Goals already completed',400);
         }
 
         $newAmount = $goal->saved_amount + $request->amount;
         if ($newAmount > $goal->target_amount) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Amount exceeds target goal. You can add up to '
-                        .number_format($goal->target_amount - $goal->saved_amount, 2).' more.',
-            ], 400);
+
+            $exceedAmount = number_format($goal->target_amount - $goal->saved_amount, 2);
+            return $this->error($exceedAmount,'Amount exceeds target goal. You can add up to',400);
         }
 
         $goal->saved_amount = $newAmount;
@@ -179,18 +162,16 @@ class SavingGoalController extends Controller
             'progress_percentage' =>$progress,
         ]);
 
-        return response()->json([
-            'status' => 'success',
-            'message' => 'amount added successfully',
-            'goal' => [
-                'id' => $goal->id,
-                'title' => $goal->title,
-                'saved_amount' => number_format($goal->saved_amount, 2),
-                'target_amount' => number_format($goal->target_amount, 2),
-                'status' => $goal->status,
-                'progress_percentage' => $progress,
-            ],
-        ]);
+
+        $data = [
+            'id' => $goal->id,
+            'title' => $goal->title,
+            'saved_amount' => number_format($goal->saved_amount, 2),
+            'target_amount' => number_format($goal->target_amount, 2),
+            'status' => $goal->status,
+            'progress_percentage' => $progress,
+        ];
+        return $this->success($data,'amount added successfully',200);
 
     }
 
@@ -207,17 +188,13 @@ class SavingGoalController extends Controller
         $goal = Saving::where('id', $goal_id)->where('kid_id', $kid->id)->firstOrFail();
 
         if ($goal->status === 'collected') {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Goal already collected.',
-            ], 400);
+
+            return $this->error('','Goal reward already collected.',400);
         }
 
         if ($goal->status !== 'completed') {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Goal is not completed yet.',
-            ], 400);
+
+            return $this->error('','Goal is not completed yet.',400);
         }
 
         if ($request->action === 'yes') {
@@ -225,11 +202,8 @@ class SavingGoalController extends Controller
             $goal->status = 'collected';
             $goal->save();
 
-            return response()->json([
-                'status' => 'success',
-                'message' => 'Goal collected successfully',
-                'goal' => $goal->title,
-            ]);
+            return $this->success($goal->title,'Goal collected successfully',200);
+
         } elseif ($request->action === 'cancel') {
             $kid->balance += $goal->saved_amount;
             $kid->save();
@@ -246,18 +220,14 @@ class SavingGoalController extends Controller
             'transaction_date' => now(),
         ]);
 
-            return response()->json([
-                'status' => 'success',
-                'message' => 'Goal cancelled. Amount returned to your balance.',
+            $data = [
                 'goal' => $goal,
                 'balance' => number_format($kid->balance, 2),
-            ]);
+            ];
+            return $this->success($data, 'You click the cancel. Amount returned to your balance.',200);
         }
 
-        return response()->json([
-            'status' => 'error',
-            'message' => 'Invalid action',
-        ], 400);
+        return $this->error('','Invalid action',400);
 
     }
 }

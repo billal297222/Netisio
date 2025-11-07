@@ -10,6 +10,8 @@ use App\Http\Controllers\Backend\RoleController;
 use App\Http\Controllers\Backend\SettingController;
 use App\Http\Controllers\Backend\UserController;
 use App\Http\Controllers\Backend\PdfController;
+use App\Http\Controllers\Backend\ParentController;
+use App\Http\Controllers\Backend\MonthlyController;
 use App\Http\Controllers\Backend\DashboardController;
 
 Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
@@ -45,17 +47,27 @@ Route::controller(FqaController::class)->group(function () {
     Route::get('/faq/edit/{id}', 'edit')->name('faq.edit');
 });
 
-// PDF Route
-Route::controller(PdfController::class)->group(function () {
-    Route::get('/pdf', 'index')->name('pdf.index');             // Show PDF list
-    Route::post('/pdf/store', 'store')->name('pdf.store');      // Store new PDF
-    Route::post('/pdf/update/{id}', 'update')->name('pdf.update'); // Update PDF
-    Route::get('/pdf/destroy/{id}', 'destroy')->name('pdf.destroy'); // Delete PDF
-    Route::get('/pdf/edit/{id}', 'edit')->name('pdf.edit');     // Edit PDF
-    Route::post('pdfs/bulk-delete', 'bulkDelete')->name('pdf.bulk');
-    //  Route::delete('/pdfs/bulk-delete', [PdfController::class, 'bulkDelete'])->name('pdf.bulk');
+
+Route::controller(ParentController::class)->group(function () {
+    Route::get('/family', 'index')->name('family.index');
+    Route::post('/family/delete/{id}', 'delete')->name('family.delete');
+    Route::get('/family/show/{id}', 'show')->name('family.show');
+    Route::patch('/toggle-status/{type}/{id}', 'toggleStatus')->name('toggle.status');
+    // Delete a kid
+    Route::delete('/kids/{kid}', 'destroy')->name('kids.destroy');
+    Route::get('/admin/monthly-limit',  'edit')->name('backend.edit');
+    Route::post('/admin/monthly-limit','update')->name('backend.update');
 
 });
+Route::controller(MonthlyController::class)->group(function () {
+
+
+
+
+});
+
+
+
 
 
 // Dynamic Pages Route

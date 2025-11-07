@@ -24,9 +24,8 @@ class WeeklyPaymentController extends Controller
         $kid = Kid::where('id', $request->kid_id)->where('parent_id', $parent->id)->first();
 
         if (! $kid) {
-            return response()->json([
-                'message' => 'Kid not found.',
-            ], 404);
+
+            return $this->error('','Kid not Found',404);
         }
 
         $weeklyPayment = WeeklyPayment::create([
@@ -38,11 +37,12 @@ class WeeklyPaymentController extends Controller
             'created_by_parent_id' => $parent->id,
         ]);
 
-        return response()->json([
-            'message' => 'Weekly payment created successfully!',
+
+        $data = [
             'weekly_payment' => $weeklyPayment,
             'due_days' => $weeklyPayment->due_date,
-        ], 201);
+        ];
+        return $this->success($data,'Weekly payment created successfully!',201);
     }
 
     public function payWeeklyPayment($id)
@@ -51,21 +51,18 @@ class WeeklyPaymentController extends Controller
         $payment = WeeklyPayment::where('id', $id)->where('kid_id', $kid->id)->first();
 
         if (! $payment) {
-            return response()->json([
-                'message' => 'weekly payment not found',
-            ], 400);
+
+            return $this->error('','weekly payment not found',404);
         }
 
         if ($payment->status === 'paid') {
-            return response()->json([
-                'message' => 'This weekly payment is already paid.',
-            ], 400);
+
+            return $this->error('','This weekly payment is already paid.',400);
         }
 
         if ($kid->balance < $payment->amount) {
-            return response()->json([
-                'message' => 'Not enough balance to pay this weekly payment.',
-            ], 400);
+
+            return $this->error('','Not enough balance to pay this weekly payment.',400);
         }
 
         $kid->balance -= $payment->amount;
@@ -99,11 +96,12 @@ class WeeklyPaymentController extends Controller
 
         // ---------------------------
 
-        return response()->json([
-            'message' => 'Weekly payment successfully paid!',
+
+        $data = [
             'weekly_payment' => $payment,
             'kid_balance' => $kid->balance,
-        ], 200);
+        ];
+        return $this->success($data,'Weekly payment successfully paid!',200);
 
     }
 
@@ -112,10 +110,8 @@ class WeeklyPaymentController extends Controller
         $kid = auth('kid')->user();
         $payment = WeeklyPayment::where('kid_id', $kid->id)->orderBy('created_at', 'desc')->get();
 
-        return response()->json([
-            'message' => 'Weekly payment retrieved successfully.',
-            'tasks' => $payment,
-        ]);
+
+        return $this->success($payment,'Weekly payment retrieved successfully.',200);
     }
 
     public function requestMoneyPayment(Request $request, $payment_id)

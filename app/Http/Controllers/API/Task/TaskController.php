@@ -25,9 +25,8 @@ class TaskController extends Controller
 
         $kid = Kid::where('id', $request->kid_id)->where('parent_id', $parent->id)->first();
         if (! $kid) {
-            return response()->json([
-                'message' => 'kids not found',
-            ], 404);
+
+            return $this->error('','kids not found',404);
         }
 
         $task = Task::create([
@@ -40,10 +39,8 @@ class TaskController extends Controller
             'created_by_parent_id' => $parent->id,
         ]);
 
-        return response()->json([
-            'message' => 'task created successfully',
-            'task' => $task,
-        ], 201);
+
+        return $this->success($task,'task created successfully',201);
     }
 
     public function startTask($taskId)
@@ -52,25 +49,21 @@ class TaskController extends Controller
         $task = Task::where('id', $taskId)->where('kid_id', $kid->id)->first();
 
         if (! $task) {
-            return response()->json([
-                'message' => 'Task not found',
-            ]);
+
+            return $this->error('','Task not found',404);
         }
 
         if ($task->status !== 'not_started') {
-            return response()->json([
-                'message' => 'Task already started',
-            ]);
+
+            return $this->error('','Task already started',400);
 
         }
         $task->update([
             'status' => 'in_progress',
         ]);
 
-        return response()->json([
-            'message' => 'Task started successfully!',
-            'task' => $task,
-        ], 200);
+
+        return $this->success('','Task started successfully!',200);
     }
 
     public function completeTask($taskId)
@@ -79,15 +72,13 @@ class TaskController extends Controller
         $task = Task::where('id', $taskId)->where('kid_id', $kid->id)->first();
 
         if (! $task) {
-            return response()->json([
-                'message' => 'Task not found',
-            ]);
+
+            return $this->error('','Task not found',404);
         }
 
         if ($task->status !== 'in_progress') {
-            return response()->json([
-                'message' => 'You have to start the task',
-            ]);
+
+            return $this->error('','You have to start the task',400);
 
         }
         $task->update([
@@ -120,11 +111,7 @@ class TaskController extends Controller
 
         // ---------------------------
 
-
-        return response()->json([
-            'message' => 'Task completed successfully!',
-            'task' => $task,
-        ], 200);
+        return $this->success('','Task completed successfully!',200);
     }
 
     public function rewardCollected($taskId)
@@ -133,15 +120,12 @@ class TaskController extends Controller
         $task = Task::where('id', $taskId)->where('kid_id', $kid->id)->first();
 
         if (! $task) {
-            return response()->json([
-                'message' => 'Task not found',
-            ]);
+            return $this->error('','Task not found',404);
         }
 
         if ($task->status !== 'completed') {
-            return response()->json([
-                'message' => 'You have to complete the task',
-            ]);
+
+            return $this->error('','You have to complete the task',400);
 
         }
 
@@ -152,11 +136,12 @@ class TaskController extends Controller
         $kid->balance += $task->reward_amount;
         $kid->save();
 
-        return response()->json([
-            'message' => 'Rewarded collected successfully!',
+
+        $data = [
             'task' => $task,
             'new_balance' => $kid->balance,
-        ], 200);
+        ];
+        return $this->success($data,'Rewarded collected successfully!',200);
     }
 
     public function getKidTasks()
@@ -164,9 +149,6 @@ class TaskController extends Controller
         $kid = auth('kid')->user();
         $tasks = Task::where('kid_id', $kid->id)->orderBy('created_at', 'desc')->get();
 
-        return response()->json([
-            'message' => 'Tasks retrieved successfully.',
-            'tasks' => $tasks,
-        ]);
+        return $this->success($tasks,'Tasks retrieved successfully.', 200);
     }
 }

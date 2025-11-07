@@ -72,7 +72,7 @@ class KidTransactionController extends Controller
         //     'message' => 'Money sent successfully',
         //     'transaction' => $transaction,
         // ]);
-        return $this->success($transaction,'Money sent successfully',200);
+        return $this->success($transaction,'Money sent successfully',201);
 
     }
     public function requestMoney(Request $request){
@@ -136,7 +136,7 @@ class KidTransactionController extends Controller
 
         if (! $kid) {
 
-            return $this->error('','user not found',401);
+            return $this->error('','user not found',404);
         }
 
 
@@ -148,7 +148,7 @@ class KidTransactionController extends Controller
             'today_can_spend' => number_format($kid->today_can_spend, 2),
         ];
 
-        return $this->success($data,'Wallet info',201);
+        return $this->success($data,'Wallet info',200);
 
     }
 
@@ -209,7 +209,7 @@ class KidTransactionController extends Controller
         });
 
 
-    return $this->success($transactions,'Your Transactions',201);
+    return $this->success($transactions,'Your Transactions',200);
 }
 
 }

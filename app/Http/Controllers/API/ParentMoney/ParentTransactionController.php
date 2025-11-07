@@ -25,10 +25,8 @@ class ParentTransactionController extends Controller
 
         $amount = $request->amount;
         if ($amount > $parent->available_limit) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Deposit amount exceeds available limit',
-            ], 400);
+
+            return $this->error('','Deposit amount exceeds available limit',400);
         }
 
         $parent->balance += $amount;
@@ -43,13 +41,13 @@ class ParentTransactionController extends Controller
             'transaction_datetime' => Carbon::now(),
         ]);
 
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Deposit successful',
+
+        $data = [
             'balance' => $parent->balance,
             'available_limit' => $parent->available_limit,
             'transaction' => $transaction,
-        ]);
+        ];
+        return $this->success($data,'Deposit successful',200);
     }
 
     public function depositeLimite()
@@ -58,11 +56,11 @@ class ParentTransactionController extends Controller
         $backend = Backend::first();
         $monthly_limit = $backend ? $backend->monthly_limit : 10000.00;
 
-        return response()->json([
-            'status' => 'success',
+        $data = [
             'monthly_limit' => $monthly_limit,
             'available_limit' => $parent->available_limit,
-        ]);
+        ];
+         return $this->success($data,'Monthly limit',200);
     }
 
     public function wallet()
@@ -70,22 +68,17 @@ class ParentTransactionController extends Controller
         $parent = auth('parent')->user();
 
         if (! $parent) {
-            return response()->json([
-                'status' => 'failed',
-                'message' => 'user not found',
-            ], 401);
+
+            return $this->success('','user not found',401);
         }
 
-        return response()->json([
-            'status' => 'success',
-            'kid' => [
+        $data = [
                 'id' => $parent->id,
                 'full_name' => $parent->full_name,
                 'kavatar_url' => $parent->kavatar ? url($parent->kavatar) : null,
                 'balance' => number_format($parent->balance, 2),
-            ],
-
-        ], 201);
+        ];
+        return $this->success($data,'Kids Wallet',200);
 
     }
 
@@ -100,17 +93,13 @@ class ParentTransactionController extends Controller
 
         $kid = Kid::where('id', $request->kid_id)->where('parent_id', $parent->id)->first();
         if (! $kid) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'kids not found',
-            ], 401);
+
+            return $this->success('','kids not found',401);
         }
 
         if ($parent->balance < $request->amount) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Insufficient balance',
-            ], 401);
+
+            return $this->success('','Insufficient balance',401);
         }
 
         $parent->balance -= $request->amount;
@@ -136,13 +125,11 @@ class ParentTransactionController extends Controller
             'transaction_datetime' => Carbon::now(),
         ]);
 
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Money sent successfully.',
-            'data' => [
-                'amount' => number_format($request->amount, 2),
-            ],
-        ]);
+         $data = [
+            'amount' => number_format($request->amount, 2),
+         ];
+
+         return $this->success($data,'Money sent successfully.',200);
 
     }
 
@@ -162,9 +149,6 @@ class ParentTransactionController extends Controller
                 ];
             });
 
-        return response()->json([
-            'status' => 'success',
-            'transactions' => $transactions,
-        ]);
+        return $this->success($transactions,'Parent transactions',200);
     }
 }

@@ -39,7 +39,7 @@ class KidController extends Controller
 
         $kid->save();
 
-        return $this->success($kid,'Profile updated successfully',201);
+        return $this->success($kid,'Profile updated successfully',200);
 
     }
 
@@ -59,7 +59,7 @@ class KidController extends Controller
         $kid->password = Hash::make($request->new_password);
         $kid->save();
 
-        return $this->success('', 'Password changed successfully',201);
+        return $this->success('', 'Password changed successfully',200);
     }
 
     public function myFamily(Request $request)
@@ -77,7 +77,7 @@ class KidController extends Controller
             ->where('created_by_parent', $parent->id)
             ->get();
 
-        return $this->success($families,'Your Family information',201);
+        return $this->success($families,'Your Family information',200);
     }
 
 
@@ -112,7 +112,7 @@ class KidController extends Controller
         }
         $goal->save();
 
-        return $this->success($goal,'Amount added successfully',201);
+        return $this->success($goal,'Amount added successfully',200);
     }
 
     public function getKidSaving()
@@ -120,7 +120,7 @@ class KidController extends Controller
         $kid = auth('kid')->user();
         $goals = Saving::where('kid_id', $kid->id)->orderBy('created_at', 'desc')->get();
 
-        return $this->success($goals, 'saving goals retrieved successfully.',201);
+        return $this->success($goals, 'saving goals retrieved successfully.',200);
     }
 
     public function KidProfile()
@@ -134,7 +134,7 @@ class KidController extends Controller
                 'today_can_spend' => (float) $kid->today_can_spend,
                 'total_balance' => (float) $kid->balance,
          ];
-        return $this->success($profile,'Kid profile retrieved successfully.',201);
+        return $this->success($profile,'Kid profile retrieved successfully.',200);
     }
 
     public function updateTodayCanSpend(Request $request, $kidId)
@@ -162,7 +162,7 @@ class KidController extends Controller
                 'today_can_spend' => $kid->today_can_spend,
                 'balance' => $kid->balance,
         ];
-        return $this->success($data,'Today spend updated successfully',201);
+        return $this->success($data,'Today spend updated successfully',200);
     }
 
     public function klogout()
@@ -176,7 +176,7 @@ class KidController extends Controller
                 'status' => 'success',
                 'message' => 'kid logged out successfully',
             ]);
-            return $this->success('','kid logged out successfully',201);
+            return $this->success('','kid logged out successfully',200);
 
         } catch (\Tymon\JWTAuth\Exceptions\JWTException $e) {
 

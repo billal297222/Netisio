@@ -51,7 +51,7 @@ class parentController extends Controller
             $family->save();
         }
 
-        return $this->success($parent,'Profile updated successfully',201);
+        return $this->success($parent,'Profile updated successfully',200);
     }
 
     public function changePassword(Request $request)
@@ -80,7 +80,7 @@ class parentController extends Controller
             'status' => 'success',
             'message' => 'Password changed successfully',
         ]);
-        return $this->success('','Password changed successfully',201);
+        return $this->success('','Password changed successfully',200);
     }
 
     // public function myFamily(Request $request)
@@ -154,7 +154,7 @@ class parentController extends Controller
             'total_members' => $members->count(),
             'members' => $members,
         ];
-        return $this->success($data,'Family Member list',201);
+        return $this->success($data,'Family Member list',200);
     }
 
     public function createGoal(Request $request)
@@ -212,7 +212,7 @@ class parentController extends Controller
                 'balance' => number_format($kid->balance, 2),
                 'today_can_spend' => number_format($kid->today_can_spend, 2),
         ];
-        return $this->success($data,'Kid Information',201);
+        return $this->success($data,'Kid Information',200);
 
     }
 
@@ -234,7 +234,7 @@ class parentController extends Controller
                 'avatar' => $kid->kavatar ? url($kid->kavatar) : null,
                 'tasks' => $tasks,
              ];
-             return $this->success($data,'Assign Task to the kids',201);
+             return $this->success($data,'Assign Task to the kids',200);
 
     }
 
@@ -249,10 +249,7 @@ class parentController extends Controller
             ->first();
 
         if (! $kid) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Kid not found or does not belong to you.',
-            ], 404);
+           return $this->error('','kids not found',404);
         }
 
         $savings = Saving::where('kid_id', $kid->id)
@@ -275,15 +272,25 @@ class parentController extends Controller
                 ];
             });
 
-        return response()->json([
-            'status' => 'success',
-            'kid' => [
-                'id' => $kid->id,
-                'name' => $kid->full_name,
-                'avatar' => $kid->kavatar ? url($kid->kavatar) : null,
-            ],
-            'savings' => $savings,
-        ]);
+        // return response()->json([
+        //     'status' => 'success',
+        //     'kid' => [
+        //         'id' => $kid->id,
+        //         'name' => $kid->full_name,
+        //         'avatar' => $kid->kavatar ? url($kid->kavatar) : null,
+        //     ],
+        //     'savings' => $savings,
+        // ]);
+        $kidInf = [
+            'id' => $kid->id,
+            'name' => $kid->full_name,
+            'avatar' => $kid->kavatar ? url($kid->kavatar) : null,
+        ];
+        $data = [
+            'kidInf' => $kidInf,
+             'savings' => $savings,
+        ];
+        return $this->success($data,'Assign goals to the kids',200);
     }
 
     public function getAssignPayment($kid_id)
@@ -293,10 +300,8 @@ class parentController extends Controller
         $kid = Kid::where('id', $kid_id)->where('parent_id', $parent->id)->first();
 
         if (! $kid) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'kids not found',
-            ], 404);
+
+            return $this->error('','kids not found',404);
         }
         $payments = WeeklyPayment::where('kid_id', $kid->id)->latest()->get(['id', 'title', 'amount', 'due_in_days', 'status'])
             ->map(function ($p) {
@@ -309,15 +314,26 @@ class parentController extends Controller
                 ];
             });
 
-        return response()->json([
-            'status' => 'success',
-            'kid' => [
-                'id' => $kid->id,
-                'name' => $kid->full_name,
-                'avatar' => $kid->kavatar ? url($kid->kavatar) : null,
-            ],
+        // return response()->json([
+        //     'status' => 'success',
+        //     'kid' => [
+        //         'id' => $kid->id,
+        //         'name' => $kid->full_name,
+        //         'avatar' => $kid->kavatar ? url($kid->kavatar) : null,
+        //     ],
+        //     'payments' => $payments,
+        // ]);
+
+        $kidInf = [
+            'id' => $kid->id,
+            'name' => $kid->full_name,
+            'avatar' => $kid->kavatar ? url($kid->kavatar) : null,
+        ];
+        $data = [
+            'kidInf' => $kidInf,
             'payments' => $payments,
-        ]);
+        ];
+        return $this->success($data,'Assign payment to the kids',200);
     }
 
     public function AssignAllTask()
@@ -343,10 +359,7 @@ class parentController extends Controller
                 ];
             });
 
-        return response()->json([
-            'status' => 'success',
-            'tasks' => $tasks,
-        ]);
+        return $this->success($tasks,'Assign all tasks to kids',200);
     }
 
     public function AssignAllGoal()
@@ -378,10 +391,8 @@ class parentController extends Controller
                 ];
             });
 
-        return response()->json([
-            'status' => 'success',
-            'savings' => $saving,
-        ]);
+
+        return $this->success($saving,'Assign all goals to kids',200);
     }
 
     public function AssignAllPayment()
@@ -405,11 +416,7 @@ class parentController extends Controller
                 ];
             });
 
-        return response()->json([
-            'status' => 'success',
-            'payments' => $payments,
-        ]);
-
+        return $this->success($payments,'Assign all payemnts to kids',200);
     }
 
     public function allMemberAssign()
@@ -425,10 +432,7 @@ class parentController extends Controller
                 ];
             });
 
-        return response()->json([
-            'status' => 'success',
-            'kids' => $membar,
-        ]);
+        return $this->success($membar,'All Family member',200);
     }
 
 
@@ -441,16 +445,28 @@ class parentController extends Controller
         if ($parent) {
             $familyMembersCount = 1+$parent->kids()->count();
 
-            return response()->json([
-                'status' => 'success',
-                'logged_in_user' => [
+            // return response()->json([
+            //     'status' => 'success',
+            //     'logged_in_user' => [
+            //         'id' => $parent->id,
+            //         'name' => $parent->full_name,
+            //         'unique_id' => $parent->p_unique_id,
+            //         'avatar' => $parent->pavatar ? url($parent->pavatar) : null,
+            //     ],
+            //     'total_family_members' => $familyMembersCount,
+            // ]);
+
+            $profile = [
                     'id' => $parent->id,
                     'name' => $parent->full_name,
                     'unique_id' => $parent->p_unique_id,
                     'avatar' => $parent->pavatar ? url($parent->pavatar) : null,
-                ],
+            ];
+            $data = [
+                'profile'=>$profile,
                 'total_family_members' => $familyMembersCount,
-            ]);
+            ];
+            return $this->success($data,'My profile (parent)',200);
         }
 
         if ($kid) {
@@ -458,32 +474,39 @@ class parentController extends Controller
 
             $totalMembers = 1 + ($family?->kids_count ?? 0);
 
-            return response()->json([
-                'status' => 'success',
-                'logged_in_user' => [
+            // return response()->json([
+            //     'status' => 'success',
+            //     'logged_in_user' => [
+            //         'id' => $kid->id,
+            //         'name' => $kid->full_name,
+            //         'unique_id' => $kid->k_unique_id,
+            //         'avatar' => $kid->kavatar ? url($kid->kavatar) : null,
+            //     ],
+            //     'total_family_members' => $totalMembers,
+            // ]);
+
+             $profile = [
                     'id' => $kid->id,
                     'name' => $kid->full_name,
                     'unique_id' => $kid->k_unique_id,
                     'avatar' => $kid->kavatar ? url($kid->kavatar) : null,
-                ],
+            ];
+            $data = [
+                'profile'=>$profile,
                 'total_family_members' => $totalMembers,
-            ]);
+            ];
+            return $this->success($data,'My profile (kids)',200);
         }
 
-        return response()->json([
-            'status' => 'error',
-            'message' => 'Unauthorized',
-        ], 401);
+        return $this->error('','Unauthorized',401);
     }
 
     public function recentActivity(){
         $parent = auth('parent')->user();
 
         if (! $parent) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Unauthorized or invalid token'
-            ], 401);
+
+             return $this->error('','Unauthorized or invalid token',401);
         }
 
         $kids = Kid::where('parent_id', $parent->id)->pluck('id');
@@ -552,10 +575,7 @@ class parentController extends Controller
 
         $sorted = $activities->sortByDesc('time')->values();
 
-        return response()->json([
-            'status' => 'success',
-            'activities' => $sorted,
-        ]);
+        return $this->success($sorted,'All activities of kids',200);
     }
 
 }

@@ -103,7 +103,7 @@ class ParentAuthController extends Controller
             'parent_id' => $parent->id,
             'p_unique_id' => $parent->p_unique_id,
         ];
-        return $this->success($data,'Parent registered successfully',200);
+        return $this->success($data,'Parent registered successfully',201);
     }
 
     // Parent login
@@ -158,7 +158,7 @@ class ParentAuthController extends Controller
              'family_id' => $family->id,
              'favatar_url' => $favatar,
         ];
-        return $this->success($data,'Family created successfully',200);
+        return $this->success($data,'Family created successfully',201);
     }
 
     // Create Kid
@@ -192,7 +192,7 @@ class ParentAuthController extends Controller
             'k_unique_id' => $kid->k_unique_id,
         ];
 
-        return $this->success($data,'Kid account created successfully',200);
+        return $this->success($data,'Kid account created successfully',201);
     }
 
     // Kid login
