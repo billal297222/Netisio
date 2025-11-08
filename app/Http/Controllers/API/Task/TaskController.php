@@ -13,6 +13,7 @@ use App\Traits\ApiResponse;
 class TaskController extends Controller
 {
     use ApiResponse;
+
     public function createTask(Request $request)
     {
         $parent = auth('parent')->user();
@@ -39,8 +40,19 @@ class TaskController extends Controller
             'created_by_parent_id' => $parent->id,
         ]);
 
+        $taskData = [
+            'id' => $task->id,
+            'kid_id' => $kid->id,
+            'kid_name' => $kid->full_name,
+            'kid_avatar' => $kid->kavatar ? url($kid->kavatar) : null, // added avatar path
+            'title' => $task->title,
+            'description' => $task->description,
+            'reward_amount' => $task->reward_amount,
+            'status' => $task->status,
+            'due_date' => $task->due_date,
+        ];
 
-        return $this->success($task,'task created successfully',201);
+        return $this->success($taskData,'Task created successfully',201);
     }
 
     public function startTask($taskId)
@@ -61,7 +73,6 @@ class TaskController extends Controller
         $task->update([
             'status' => 'in_progress',
         ]);
-
 
         return $this->success('','Task started successfully!',200);
     }
@@ -85,7 +96,6 @@ class TaskController extends Controller
             'status' => 'completed',
         ]);
 
-
         // Use FcmService-------------------------------------
         try {
             $fcmService = new FcmService;
@@ -108,7 +118,6 @@ class TaskController extends Controller
         } catch (\Exception $e) {
             \Log::error('FCM Error: '.$e->getMessage());
         }
-
         // ---------------------------
 
         return $this->success('','Task completed successfully!',200);
@@ -136,18 +145,29 @@ class TaskController extends Controller
         $kid->balance += $task->reward_amount;
         $kid->save();
 
-
         $data = [
             'task' => $task,
             'new_balance' => $kid->balance,
+            'kid_avatar' => $kid->kavatar ? url($kid->kavatar) : null, // added avatar path
         ];
-        return $this->success($data,'Rewarded collected successfully!',200);
+        return $this->success($data,'Reward collected successfully!',200);
     }
 
     public function getKidTasks()
     {
         $kid = auth('kid')->user();
-        $tasks = Task::where('kid_id', $kid->id)->orderBy('created_at', 'desc')->get();
+        $tasks = Task::where('kid_id', $kid->id)->orderBy('created_at', 'desc')->get()
+            ->map(function($task) use ($kid) {
+                return [
+                    'id' => $task->id,
+                    'title' => $task->title,
+                    'description' => $task->description,
+                    'reward_amount' => $task->reward_amount,
+                    'status' => $task->status,
+                    'due_date' => $task->due_date,
+                    'kid_avatar' => $kid->kavatar ? url($kid->kavatar) : null, // added avatar path
+                ];
+            });
 
         return $this->success($tasks,'Tasks retrieved successfully.', 200);
     }

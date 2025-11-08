@@ -47,7 +47,7 @@ class parentController extends Controller
             $file = $request->file('favatar');
             $filename = time().'_'.$file->getClientOriginalName();
             $file->move(public_path('family_avatars/favatar'), $filename);
-            $family->favatar = 'family_avatars/favatar/'.$filename;
+            $family->favatar = url('family_avatars/favatar/'.$filename);
             $family->save();
         }
 
@@ -272,15 +272,6 @@ class parentController extends Controller
                 ];
             });
 
-        // return response()->json([
-        //     'status' => 'success',
-        //     'kid' => [
-        //         'id' => $kid->id,
-        //         'name' => $kid->full_name,
-        //         'avatar' => $kid->kavatar ? url($kid->kavatar) : null,
-        //     ],
-        //     'savings' => $savings,
-        // ]);
         $kidInf = [
             'id' => $kid->id,
             'name' => $kid->full_name,
@@ -313,16 +304,6 @@ class parentController extends Controller
                     'due_in_days' => $p->due_in_days,
                 ];
             });
-
-        // return response()->json([
-        //     'status' => 'success',
-        //     'kid' => [
-        //         'id' => $kid->id,
-        //         'name' => $kid->full_name,
-        //         'avatar' => $kid->kavatar ? url($kid->kavatar) : null,
-        //     ],
-        //     'payments' => $payments,
-        // ]);
 
         $kidInf = [
             'id' => $kid->id,
@@ -435,8 +416,6 @@ class parentController extends Controller
         return $this->success($membar,'All Family member',200);
     }
 
-
-
     public function myProfile()
     {
         $parent = auth('parent')->user();
@@ -444,17 +423,6 @@ class parentController extends Controller
 
         if ($parent) {
             $familyMembersCount = 1+$parent->kids()->count();
-
-            // return response()->json([
-            //     'status' => 'success',
-            //     'logged_in_user' => [
-            //         'id' => $parent->id,
-            //         'name' => $parent->full_name,
-            //         'unique_id' => $parent->p_unique_id,
-            //         'avatar' => $parent->pavatar ? url($parent->pavatar) : null,
-            //     ],
-            //     'total_family_members' => $familyMembersCount,
-            // ]);
 
             $profile = [
                     'id' => $parent->id,
@@ -474,17 +442,6 @@ class parentController extends Controller
 
             $totalMembers = 1 + ($family?->kids_count ?? 0);
 
-            // return response()->json([
-            //     'status' => 'success',
-            //     'logged_in_user' => [
-            //         'id' => $kid->id,
-            //         'name' => $kid->full_name,
-            //         'unique_id' => $kid->k_unique_id,
-            //         'avatar' => $kid->kavatar ? url($kid->kavatar) : null,
-            //     ],
-            //     'total_family_members' => $totalMembers,
-            // ]);
-
              $profile = [
                     'id' => $kid->id,
                     'name' => $kid->full_name,
@@ -501,85 +458,82 @@ class parentController extends Controller
         return $this->error('','Unauthorized',401);
     }
 
-    public function recentActivity(){
-        $parent = auth('parent')->user();
+   public function recentActivity(){
+    $parent = auth('parent')->user();
 
-        if (! $parent) {
+    if (! $parent) {
 
-             return $this->error('','Unauthorized or invalid token',401);
-        }
-
-        $kids = Kid::where('parent_id', $parent->id)->pluck('id');
-
-        $tasks = Task::whereIn('kid_id', $kids)
-            ->latest('updated_at')
-            ->take(10)
-            ->get(['id', 'kid_id', 'title', 'status', 'updated_at']);
-
-        $goals = Saving::whereIn('kid_id', $kids)
-            ->latest('updated_at')
-            ->take(10)
-            ->get(['id', 'kid_id', 'title', 'status', 'progress_percentage', 'updated_at']);
-
-        $payments = WeeklyPayment::whereIn('kid_id', $kids)
-            ->latest('updated_at')
-            ->take(10)
-            ->get(['id', 'kid_id', 'title', 'status', 'updated_at']);
-
-        $activities = new Collection();
-
-        foreach ($tasks as $task) {
-            $kid = $task->kid;
-            if (!$kid) continue;
-
-            if ($task->status === 'completed') {
-                $activities->push([
-                    'message' => "{$kid->full_name} completed the task \"{$task->title}\".",
-                    'type' => 'task',
-                    'time' => $task->updated_at,
-                ]);
-            }
-        }
-
-        foreach ($goals as $goal) {
-            $kid = $goal->kid;
-            if (!$kid) continue;
-
-            if ($goal->status === 'completed') {
-                $activities->push([
-                    'message' => "{$kid->full_name} completed the goal \"{$goal->title}\".",
-                    'type' => 'goal',
-                    'time' => $goal->updated_at,
-                ]);
-            } else {
-                $activities->push([
-                    'message' => "{$kid->full_name} reached {$goal->progress_percentage}% of \"{$goal->title}\" goal.",
-                    'type' => 'goal',
-                    'time' => $goal->updated_at,
-                ]);
-            }
-        }
-
-        foreach ($payments as $payment) {
-            $kid = $payment->kid;
-            if (!$kid) continue;
-
-            if ($payment->status === 'paid') {
-                $activities->push([
-                    'message' => "{$kid->full_name} received payment for \"{$payment->title}\".",
-                    'type' => 'payment',
-                    'time' => $payment->updated_at,
-                ]);
-            }
-        }
-
-        $sorted = $activities->sortByDesc('time')->values();
-
-        return $this->success($sorted,'All activities of kids',200);
+         return $this->error('','Unauthorized or invalid token',401);
     }
 
+    $kids = Kid::where('parent_id', $parent->id)->pluck('id');
+
+    $tasks = Task::whereIn('kid_id', $kids)
+        ->latest('updated_at')
+        ->take(10)
+        ->get(['id', 'kid_id', 'title', 'status', 'updated_at']);
+
+    $goals = Saving::whereIn('kid_id', $kids)
+        ->latest('updated_at')
+        ->take(10)
+        ->get(['id', 'kid_id', 'title', 'status', 'progress_percentage', 'updated_at']);
+
+    $payments = WeeklyPayment::whereIn('kid_id', $kids)
+        ->latest('updated_at')
+        ->take(10)
+        ->get(['id', 'kid_id', 'title', 'status', 'updated_at']);
+
+    $activities = new Collection();
+
+    foreach ($tasks as $task) {
+        $kid = $task->kid;
+        if (!$kid) continue;
+
+        if ($task->status === 'completed') {
+            $activities->push([
+                'message' => "{$kid->full_name} completed the task \"{$task->title}\".",
+                'type' => 'task',
+                'time' => $task->updated_at,
+            ]);
+        }
+    }
+
+    foreach ($goals as $goal) {
+        $kid = $goal->kid;
+        if (!$kid) continue;
+        
+         if ($goal->progress_percentage <= 0) continue;
+
+        if ($goal->status === 'completed') {
+            $activities->push([
+                'message' => "{$kid->full_name} completed the goal \"{$goal->title}\".",
+                'type' => 'goal',
+                'time' => $goal->updated_at,
+            ]);
+        } else {
+            $activities->push([
+                'message' => "{$kid->full_name} reached {$goal->progress_percentage}% of \"{$goal->title}\" goal.",
+                'type' => 'goal',
+                'time' => $goal->updated_at,
+            ]);
+        }
+    }
+
+    foreach ($payments as $payment) {
+        $kid = $payment->kid;
+        if (!$kid) continue;
+
+        if ($payment->status === 'paid') {
+            $activities->push([
+                'message' => "{$kid->full_name} received payment for \"{$payment->title}\".",
+                'type' => 'payment',
+                'time' => $payment->updated_at,
+            ]);
+        }
+    }
+
+    $sorted = $activities->sortByDesc('time')->values();
+
+    return $this->success($sorted,'All activities of kids',200);
 }
-
-
-
-
+}

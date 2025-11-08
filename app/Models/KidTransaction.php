@@ -12,8 +12,9 @@ class KidTransaction extends Model
     protected $table = 'kid_transactions';
 
     protected $fillable = [
-        'kid_id',
+       'kid_id',
         'receiver_kid_id',
+        'receiver_parent_id',
         'sender_parent_id',
         'saving_goal_id',
         'type',
@@ -51,4 +52,9 @@ class KidTransaction extends Model
     {
         return $this->belongsTo(Saving::class, 'saving_goal_id');
     }
+    public function receiverParent()
+{
+    return $this->belongsTo(ParentModel::class, 'receiver_parent_id');
+}
+
 }

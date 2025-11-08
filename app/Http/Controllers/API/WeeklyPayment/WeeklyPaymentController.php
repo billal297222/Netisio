@@ -12,6 +12,7 @@ use App\Traits\ApiResponse;
 class WeeklyPaymentController extends Controller
 {
     use ApiResponse;
+
     public function createWeeklyPayment(Request $request)
     {
         $parent = auth('parent')->user();
@@ -21,8 +22,8 @@ class WeeklyPaymentController extends Controller
             'amount' => 'required|numeric|min:0',
             'due_in_days' => 'required|integer|min:0',
         ]);
-        $kid = Kid::where('id', $request->kid_id)->where('parent_id', $parent->id)->first();
 
+        $kid = Kid::where('id', $request->kid_id)->where('parent_id', $parent->id)->first();
         if (! $kid) {
 
             return $this->error('','Kid not Found',404);
@@ -37,9 +38,9 @@ class WeeklyPaymentController extends Controller
             'created_by_parent_id' => $parent->id,
         ]);
 
-
         $data = [
             'weekly_payment' => $weeklyPayment,
+            'kid_avatar' => $kid->kavatar ? url($kid->kavatar) : null, // added avatar path
             'due_days' => $weeklyPayment->due_date,
         ];
         return $this->success($data,'Weekly payment created successfully!',201);
@@ -79,37 +80,44 @@ class WeeklyPaymentController extends Controller
             $fcmService->sendToToken(
                 $kid->fcm_token,
                 'Weekly Payment Completed!',
-                'Paid '.number_format($task->amount, 2).' for the payment "'.$payment->title.'"'
+                'Paid '.number_format($payment->amount, 2).' for the payment "'.$payment->title.'"'
             );
 
             // Send to the parent
             if ($kid->parent && $kid->parent->fcm_token) {
                 $fcmService->sendToToken(
                     $kid->parent->fcm_token,
-                    $kid->full_name.' completed a task!',
-                    'paid: '.number_format($payment->amount, 2).' for "'.$payment->title.'"'
+                    $kid->full_name.' completed a weekly payment!',
+                    'Paid: '.number_format($payment->amount, 2).' for "'.$payment->title.'"'
                 );
             }
         } catch (\Exception $e) {
             \Log::error('FCM Error: '.$e->getMessage());
         }
-
         // ---------------------------
-
 
         $data = [
             'weekly_payment' => $payment,
             'kid_balance' => $kid->balance,
+            'kid_avatar' => $kid->kavatar ? url($kid->kavatar) : null, // added avatar path
         ];
         return $this->success($data,'Weekly payment successfully paid!',200);
-
     }
 
     public function getKidPayment()
     {
         $kid = auth('kid')->user();
-        $payment = WeeklyPayment::where('kid_id', $kid->id)->orderBy('created_at', 'desc')->get();
-
+        $payment = WeeklyPayment::where('kid_id', $kid->id)->orderBy('created_at', 'desc')->get()
+            ->map(function($p) use ($kid) {
+                return [
+                    'id' => $p->id,
+                    'title' => $p->title,
+                    'amount' => $p->amount,
+                    'due_in_days' => $p->due_in_days,
+                    'status' => $p->status,
+                    'kid_avatar' => $kid->kavatar ? url($kid->kavatar) : null, // added avatar path
+                ];
+            });
 
         return $this->success($payment,'Weekly payment retrieved successfully.',200);
     }
@@ -128,11 +136,10 @@ class WeeklyPaymentController extends Controller
             $fcmService->sendToToken(
                 $parent->fcm_token,
                 $kid->full_name.' Out of money!',
-                'Need'.number_format($payment->amount, 2).' to payment "'.$payment->title.'"'
+                'Needs '.number_format($payment->amount, 2).' to pay "'.$payment->title.'"'
             );
         } catch (\Exception $e) {
             \Log::error('FCM Error: '.$e->getMessage());
         }
-
     }
 }

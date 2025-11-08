@@ -14,9 +14,9 @@ use App\Traits\ApiResponse;
 class ParentTransactionController extends Controller
 {
     use ApiResponse;
+
     public function deposite(Request $request)
     {
-
         $parent = auth('parent')->user();
 
         $request->validate([
@@ -41,7 +41,6 @@ class ParentTransactionController extends Controller
             'transaction_datetime' => Carbon::now(),
         ]);
 
-
         $data = [
             'balance' => $parent->balance,
             'available_limit' => $parent->available_limit,
@@ -60,7 +59,7 @@ class ParentTransactionController extends Controller
             'monthly_limit' => $monthly_limit,
             'available_limit' => $parent->available_limit,
         ];
-         return $this->success($data,'Monthly limit',200);
+        return $this->success($data,'Monthly limit',200);
     }
 
     public function wallet()
@@ -73,13 +72,12 @@ class ParentTransactionController extends Controller
         }
 
         $data = [
-                'id' => $parent->id,
-                'full_name' => $parent->full_name,
-                'kavatar_url' => $parent->kavatar ? url($parent->kavatar) : null,
-                'balance' => number_format($parent->balance, 2),
+            'id' => $parent->id,
+            'full_name' => $parent->full_name,
+            'pavatar_url' => $parent->pavatar ? url($parent->pavatar) : null, // fixed path
+            'balance' => number_format($parent->balance, 2),
         ];
-        return $this->success($data,'Kids Wallet',200);
-
+        return $this->success($data,'Parent Wallet',200);
     }
 
     public function transferMoney(Request $request)
@@ -94,7 +92,7 @@ class ParentTransactionController extends Controller
         $kid = Kid::where('id', $request->kid_id)->where('parent_id', $parent->id)->first();
         if (! $kid) {
 
-            return $this->success('','kids not found',401);
+            return $this->success('','kid not found',401);
         }
 
         if ($parent->balance < $request->amount) {
@@ -125,17 +123,16 @@ class ParentTransactionController extends Controller
             'transaction_datetime' => Carbon::now(),
         ]);
 
-         $data = [
+        $data = [
             'amount' => number_format($request->amount, 2),
-         ];
+        ];
 
-         return $this->success($data,'Money sent successfully.',200);
-
+        return $this->success($data,'Money sent successfully.',200);
     }
 
     public function getParentTransactions()
     {
-         $parent = auth('parent')->user();
+        $parent = auth('parent')->user();
         $transactions = ParentTransaction::with('kid')->where('parent_id', $parent->id)->latest()->get()
             ->map(function ($t) {
                 return [
@@ -144,6 +141,7 @@ class ParentTransactionController extends Controller
                     'amount' => number_format($t->amount, 2),
                     'message' => $t->message,
                     'kid_name' => $t->kid?->full_name,
+                    'kid_avatar' => $t->kid?->kavatar ? url($t->kid->kavatar) : null, // fixed path
                     'date' => $t->transaction_datetime->format('Y-m-d'),
                     'time' => $t->transaction_datetime->format('H:i:s'),
                 ];

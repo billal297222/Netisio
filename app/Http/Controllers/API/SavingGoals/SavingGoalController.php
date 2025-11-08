@@ -13,9 +13,9 @@ use App\Traits\ApiResponse;
 class SavingGoalController extends Controller
 {
     use ApiResponse;
+
     public function createGoal(Request $request)
     {
-
         $request->validate([
             'kid_id' => 'nullable|exists:kids,id',
             'title' => 'required|string|max:150',
@@ -62,36 +62,44 @@ class SavingGoalController extends Controller
             'created_by_parent_id' => $createdByParentId,
         ]);
 
-
         if(!$parent){
-             // Use FcmService-------------------------------------
-        try {
-            $fcmService = new FcmService;
+            // Use FcmService-------------------------------------
+            try {
+                $fcmService = new FcmService;
 
-            // Send to the parent
-            if ($kid->parent && $kid->parent->fcm_token) {
-                $fcmService->sendToToken(
-                    $kid->parent->fcm_token,
-                    $kid->full_name.' created a Goal!',
-                     'Goal: "' . $goal->title . '" with target amount: ' . number_format($goal->target_amount, 2)
-                );
+                // Send to the parent
+                if ($kid->parent && $kid->parent->fcm_token) {
+                    $fcmService->sendToToken(
+                        $kid->parent->fcm_token,
+                        $kid->full_name.' created a Goal!',
+                        'Goal: "' . $goal->title . '" with target amount: ' . number_format($goal->target_amount, 2)
+                    );
+                }
+            } catch (\Exception $e) {
+                \Log::error('FCM Error: '.$e->getMessage());
             }
-        } catch (\Exception $e) {
-            \Log::error('FCM Error: '.$e->getMessage());
+            // ---------------------------
         }
 
-        // ---------------------------
-        }
+        // Include kid avatar path
+        $goalData = [
+            'id' => $goal->id,
+            'kid_id' => $kid->id,
+            'kid_name' => $kid->full_name,
+            'kid_avatar' => $kid->kavatar ? url($kid->kavatar) : null, // fixed path
+            'title' => $goal->title,
+            'description' => $goal->description,
+            'target_amount' => $goal->target_amount,
+            'saved_amount' => $goal->saved_amount,
+            'status' => $goal->status,
+        ];
 
-        return $this->success($goal,'Saving goal created successfully.',201);
-
+        return $this->success($goalData,'Saving goal created successfully.',201);
     }
 
     // AddMoneyToGoal
-
     public function AddMoneyToGoal(Request $request, $goal_id)
     {
-
         $kid = auth('kid')->user();
 
         $request->validate([
@@ -105,33 +113,29 @@ class SavingGoalController extends Controller
         }
 
         if ($goal->status === 'completed') {
+            // Use FcmService-------------------------------------
+            try {
+                $fcmService = new FcmService;
 
-
-        // Use FcmService-------------------------------------
-        try {
-            $fcmService = new FcmService;
-
-            // Send to the kid
-            $fcmService->sendToToken(
-                $kid->fcm_token,
-                'Goal Completed!',
-                'You  Completed the Goal "'.$goal->title.'"'
-            );
-
-            // Send to the parent
-            if ($kid->parent && $kid->parent->fcm_token) {
+                // Send to the kid
                 $fcmService->sendToToken(
-                    $kid->parent->fcm_token,
-                    $kid->full_name.' completed a Goal!',
-                    'The Completed is "'.$goal->title.'"'
+                    $kid->fcm_token,
+                    'Goal Completed!',
+                    'You  Completed the Goal "'.$goal->title.'"'
                 );
+
+                // Send to the parent
+                if ($kid->parent && $kid->parent->fcm_token) {
+                    $fcmService->sendToToken(
+                        $kid->parent->fcm_token,
+                        $kid->full_name.' completed a Goal!',
+                        'The Completed is "'.$goal->title.'"'
+                    );
+                }
+            } catch (\Exception $e) {
+                \Log::error('FCM Error: '.$e->getMessage());
             }
-        } catch (\Exception $e) {
-            \Log::error('FCM Error: '.$e->getMessage());
-        }
-
-        // ---------------------------
-
+            // ---------------------------
             return $this->error('',' Goals already completed',400);
         }
 
@@ -162,7 +166,6 @@ class SavingGoalController extends Controller
             'progress_percentage' =>$progress,
         ]);
 
-
         $data = [
             'id' => $goal->id,
             'title' => $goal->title,
@@ -170,15 +173,14 @@ class SavingGoalController extends Controller
             'target_amount' => number_format($goal->target_amount, 2),
             'status' => $goal->status,
             'progress_percentage' => $progress,
+            'kid_avatar' => $kid->kavatar ? url($kid->kavatar) : null, // fixed path
         ];
-        return $this->success($data,'amount added successfully',200);
-
+        return $this->success($data,'Amount added successfully',200);
     }
 
-    //  collectGoal
+    // collectGoal
     public function collectGoal(Request $request, $goal_id)
     {
-
         $kid = auth('kid')->user();
 
         $request->validate([
@@ -210,24 +212,24 @@ class SavingGoalController extends Controller
             $goal->status = 'collected';
             $goal->save();
 
-        KidTransaction::create([
-            'kid_id' => $kid->id,
-            'type' => 'refund',
-            'saving_goal_id' => $goal->id,
-            'amount' => $goal->saved_amount,
-            'status' => 'completed',
-            'note' => 'Goal cancelled, amount refunded: ' . $goal->title,
-            'transaction_date' => now(),
-        ]);
+            KidTransaction::create([
+                'kid_id' => $kid->id,
+                'type' => 'refund',
+                'saving_goal_id' => $goal->id,
+                'amount' => $goal->saved_amount,
+                'status' => 'completed',
+                'note' => 'Goal cancelled, amount refunded: ' . $goal->title,
+                'transaction_date' => now(),
+            ]);
 
             $data = [
                 'goal' => $goal,
                 'balance' => number_format($kid->balance, 2),
+                'kid_avatar' => $kid->kavatar ? url($kid->kavatar) : null, // fixed path
             ];
-            return $this->success($data, 'You click the cancel. Amount returned to your balance.',200);
+            return $this->success($data, 'You clicked cancel. Amount returned to your balance.',200);
         }
 
         return $this->error('','Invalid action',400);
-
     }
 }

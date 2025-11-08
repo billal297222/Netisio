@@ -7,6 +7,7 @@ use  App\Http\Controllers\API\Parent\ParentController;
 use  App\Http\Controllers\API\Task\TaskController;
 use  App\Http\Controllers\API\WeeklyPayment\WeeklyPaymentController;
 use  App\Http\Controllers\API\KidMoney\KidTransactionController;
+use  App\Http\Controllers\API\KidMoney\AddListController;
 use  App\Http\Controllers\API\ParentMoney\ParentTransactionController;
 use  App\Http\Controllers\API\SavingGoals\SavingGoalController;
 
@@ -88,7 +89,8 @@ Route::middleware(['auth:parent,kid'])->group(function () {
     Route::post('/kids/saving-goals/{goal_id}/addMoney', [SavingGoalController::class, 'AddMoneyToGoal']);
     Route::post('/kids/saving-goals/{goal_id}/collect', [SavingGoalController::class, 'collectGoal']);
     Route::get('/family/my-family', [ParentController::class, 'myFamily']);
-     Route::get('/profile/my-profile', [ParentController::class, 'myProfile']);
+    Route::get('/profile/my-profile', [ParentController::class, 'myProfile']);
+    Route::get('/family/member', [KidTransactionController::class, 'familyMember']);
 
 });
 
@@ -106,6 +108,13 @@ Route::middleware(['auth:parent,kid'])->group(function () {
     Route::get('/parent/all-membar/assign', [ParentController::class, 'allMemberAssign']);
     Route::get('/parent/kids/recent-activity', [ParentController::class, 'recentActivity']);
 
+});
+
+Route::middleware('auth:kid')->group(function () {
+    Route::get('/addlist/family-members', [AddListController::class, 'showFamilyMembers']);
+    Route::post('/addlist/add-member', [AddListController::class, 'addMember']);
+    Route::delete('/addlist/remove-member/{id}', [AddListController::class, 'removeMember']);
+    Route::get('/addlist/list', [AddListController::class, 'addedList']);
 
 });
 
