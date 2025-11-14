@@ -117,11 +117,8 @@ class KidTransactionController extends Controller
             return [
                 'transaction_id' => $tx->id,
                 'amount' => $tx->amount,
-                'status' => $tx->status,
                 'date' => $tx->transaction_date,
-                'receiver_type' => $receiverType,
                 'receiver_id' => $receiverId,
-                'receiver_name' => $receiverName,
                 'avatar' => $receiverAvatar,
             ];
         });
@@ -187,11 +184,9 @@ class KidTransactionController extends Controller
                     'id' => $t->id,
                     'type' => ucfirst($t->type),
                     'amount' => number_format($t->amount, 2),
-                    'status' => ucfirst($t->status),
                     'direction' => $direction,
                     'related_name' => $relatedName,
                     'avatar' => $relatedAvatar,
-                    'goal_title' => $t->goal->title ?? null,
                     'date' => $t->created_at->format('Y-m-d'),
                     'time' => $t->created_at->format('H:i:s'),
                 ];
@@ -225,7 +220,6 @@ class KidTransactionController extends Controller
 
         $members = [];
 
-        // Parents (excluding logged-in parent if parent)
         $parents = ParentModel::where('id', $family->created_by_parent)
                         ->when(auth('parent')->check(), function ($q) use ($user) {
                             $q->where('id', '!=', $user->id);
@@ -242,7 +236,6 @@ class KidTransactionController extends Controller
             ];
         }
 
-        // Kids (excluding logged-in kid if kid)
         foreach ($family->kids as $kid) {
             if (auth('kid')->check() && $kid->id == $user->id) continue;
 

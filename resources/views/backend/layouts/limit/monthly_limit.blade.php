@@ -54,7 +54,7 @@
 
             <div class="card">
                 <div class="card-header text-center">
-                    Edit Monthly Limit
+                   <b> Edit Monthly Limit </b>
                 </div>
                 <div class="card-body">
                     <form action="{{ route('backend.update') }}" method="POST">
@@ -64,7 +64,7 @@
                             <input type="number" name="monthly_limit" id="monthly_limit" class="form-control form-control-lg" step="0.01" value="{{ $backend->monthly_limit ?? 10000.00 }}" required>
                         </div>
                         <div class="d-grid">
-                            <button type="submit" class="btn btn-success btn-lg">Update Limit</button>
+                            <button type="submit" class="btn btn-primary btn-lg">Update Limit</button>
                         </div>
                     </form>
                 </div>

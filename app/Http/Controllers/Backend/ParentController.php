@@ -31,7 +31,7 @@ class ParentController extends Controller
 
     public function delete($id)
     {
-        $family = Families::findOrFail($id);
+        $family = Family::findOrFail($id);
 
         $family->kids()->delete();
 

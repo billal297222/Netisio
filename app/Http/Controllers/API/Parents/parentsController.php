@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\API\Parent;
+namespace App\Http\Controllers\API\Parents;
 
 use App\Http\Controllers\Controller;
 use App\Models\Family;
@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Collection;
 use App\Traits\ApiResponse;
 
-class parentController extends Controller
+class parentsController extends Controller
 {
     use ApiResponse;
     public function ParentProfileEdit(Request $request)
@@ -106,56 +106,68 @@ class parentController extends Controller
     // }
 
     public function myFamily(Request $request)
-    {
-        $parent = auth('parent')->user();
-        $kid = auth('kid')->user();
+{
+    $parent = auth('parent')->user();
+    $kid = auth('kid')->user();
 
-        if (! $parent && ! $kid) {
-
-            return $this->error('','Unauthorized or invalid token',401);
-        }
-
-        $familyId = $parent ? $parent->id : $kid->family_id;
-
-        $family = Family::with(['kids:id,full_name,k_unique_id,family_id,kavatar', 'parent:id,full_name,p_unique_id,pavatar'])
-            ->where('id', $parent ? $parent->id : $kid->family_id)
-            ->first();
-
-        if (! $family) {
-
-            return $this->error('','Family not found',401);
-        }
-
-        $members = collect([]);
-
-        if ($family->parent) {
-            $members->push([
-                'id' => $family->parent->id,
-                'name' => $family->parent->full_name,
-                'unique_id' => $family->parent->p_unique_id,
-                'avatar' => $family->parent->pavatar ? url($family->parent->pavatar) : null,
-                'role' => 'parent',
-            ]);
-        }
-
-        foreach ($family->kids as $kid) {
-            $members->push([
-                'id' => $kid->id,
-                'name' => $kid->full_name,
-                'unique_id' => $kid->k_unique_id,
-                'avatar' => $kid->kavatar ? url($kid->kavatar) : null,
-                'role' => 'kid',
-            ]);
-        }
-
-
-        $data = [
-            'family_name' => $family->name,
-            'total_members' => $members->count(),
-            'members' => $members,
-        ];
-        return $this->success($data,'Family Member list',200);
+    if (! $parent && ! $kid) {
+        return $this->error('', 'Unauthorized or invalid token', 401);
     }
+
+    $family = null;
+
+    if ($parent) {
+        $family = Family::with([
+            'kids:id,full_name,k_unique_id,family_id,kavatar',
+            'parent:id,full_name,p_unique_id,pavatar'
+        ])
+        ->where('created_by_parent', $parent->id)
+        ->first();
+    } else {
+        $family = Family::with([
+            'kids:id,full_name,k_unique_id,family_id,kavatar',
+            'parent:id,full_name,p_unique_id,pavatar'
+        ])
+        ->where('id', $kid->family_id)
+        ->first();
+    }
+
+    if (! $family) {
+        return $this->error('', 'Family not found', 404);
+    }
+
+    $members = collect([]);
+
+    if ($family->parent) {
+        $members->push([
+            'id' => $family->parent->id,
+            'name' => $family->parent->full_name,
+            'unique_id' => $family->parent->p_unique_id,
+            'avatar' => $family->parent->pavatar ? url($family->parent->pavatar) : null,
+            'role' => 'parent',
+        ]);
+    }
+
+    foreach ($family->kids as $k) {
+        $members->push([
+            'id' => $k->id,
+            'name' => $k->full_name,
+            'unique_id' => $k->k_unique_id,
+            'avatar' => $k->kavatar ? url($k->kavatar) : null,
+            'role' => 'kid',
+        ]);
+    }
+
+    $data = [
+        'family_name' => $family->name,
+        'family_avatar' => $family->favatar,
+        'total_members' => $members->count(),
+        'members' => $members,
+    ];
+
+    return $this->success($data, 'Family Member list', 200);
+}
+
 
     public function createGoal(Request $request)
     {
@@ -501,7 +513,7 @@ class parentController extends Controller
     foreach ($goals as $goal) {
         $kid = $goal->kid;
         if (!$kid) continue;
-        
+
          if ($goal->progress_percentage <= 0) continue;
 
         if ($goal->status === 'completed') {

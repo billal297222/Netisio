@@ -31,7 +31,7 @@ class ParentAuthController extends Controller
         ]);
 
         $otp = rand(100000, 999999);
-        $expiresAt = Carbon::now()->addMinutes(10);
+        $expiresAt = Carbon::now()->addMinutes(3);
         $cacheKey = 'register_otp_'.Str::random(10);
 
         Cache::put($cacheKey, [
@@ -54,7 +54,7 @@ class ParentAuthController extends Controller
     public function verifyOtp(Request $request)
     {
         $request->validate([
-            'cache_key' => 'required|string',
+            'cache_key' => 'nullable|string',
             'otp' => 'required|digits:6',
         ]);
 
@@ -105,8 +105,12 @@ class ParentAuthController extends Controller
 
         $token = JWTAuth::customClaims(['exp' => Carbon::now()->addYear()->timestamp])
                     ->fromUser($parent);
+
+        $family = Family::where('created_by_parent',$parent->id)->get();
+        $isFamily = $family->isNotEmpty() ? 'true' : 'false';
         $data = [
             'parent_id' => $parent->id,
+            'isFamily' => $isFamily,
             'token' => $token,
             'avatar_url' => $parent->kavatar ? url($parent->kavatar) : null, // added avatar path
         ];
@@ -193,8 +197,12 @@ class ParentAuthController extends Controller
 
         $token = JWTAuth::customClaims(['exp' => Carbon::now()->addYear()->timestamp])
                     ->fromUser($kid);
+
         $data = [
             'kid_id' => $kid->id,
+            'kidsAvatar' => ! empty($kid->kavatar),
+            'kidsName' => ! empty($kid->full_name),
+            'kidsPin' => ! empty($kid->pin),
             'token' => $token,
             'avatar_url' => $kid->kavatar ? url($kid->kavatar) : null, // added avatar path
         ];
@@ -213,4 +221,96 @@ class ParentAuthController extends Controller
             return $this->error('','Failed to logout, please try again',500);
         }
     }
+
+    public function checkFamily(Request $request){
+        $request->validate([
+            'parent_id' => 'required|exists:parents,id',
+        ]);
+        $parentId = $request->parent_id;
+        $family = Family::where('created_by_parent',$parentId)->get();
+
+        if($family->isEmpty()){
+            return $this->success('','family not created yet',200);
+        }
+        else {
+            return $this->success('','family already created',200);
+        }
+    }
+
+   public function forgetPasssword(Request $request)
+{
+    $request->validate([
+        'email' => 'required|email|exists:parents,email',
+    ]);
+
+    $parent = ParentModel::where('email', $request->email)->first();
+
+    if (! $parent) {
+        return $this->error('', 'You have to register first', 404);
+    }
+
+    $otp = rand(100000, 999999);
+    $expiresAt = Carbon::now()->addMinutes(3);
+
+    $parent->email_otp = $otp;
+    $parent->otp_expires_at = $expiresAt;
+    $parent->save();
+
+    Mail::raw("Your password reset OTP is: $otp (valid for 3 minutes)", function ($message) use ($parent) {
+        $message->to($parent->email)
+                ->subject('Parent Password Reset OTP');
+    });
+
+    return $this->success('', 'OTP sent to your email', 200);
 }
+
+public function resetOtpVarify(Request $request)
+{
+    $request->validate([
+        'email' => 'required|email|exists:parents,email',
+        'otp' => 'required|string',
+    ]);
+
+    $parent = ParentModel::where('email', $request->email)->first();
+
+    if (!$parent->email_otp || $parent->email_otp != $request->otp) {
+        return $this->error('', 'Invalid OTP', 400);
+    }
+
+    if (Carbon::now()->gt($parent->otp_expires_at)) {
+        return $this->error('', 'OTP expired', 400);
+    }
+
+    $parent->update([
+    'email_otp' => null,
+    'otp_expires_at' => null,
+    'is_verified' =>0,
+]);
+
+
+    return $this->success('', 'OTP verified successfully', 200);
+}
+
+public function resetPassword(Request $request){
+$request->validate([
+    'email' => 'required|email|exists:parents,email',
+    'password' => 'required|string|min:1|confirmed',
+]);
+
+$parent = ParentModel::where('email', $request->email)->first();
+
+if ($parent->is_verified != 0) {
+        return $this->error('', 'Please verify OTP first', 403);
+    }
+
+$parent->update([
+    'password'=> Hash::make($request->password),
+    'is_verified' => 1,
+]);
+return $this->success('', 'Password reset successfully', 200);
+
+}
+
+
+}
+

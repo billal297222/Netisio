@@ -34,6 +34,7 @@ Route::prefix('category')->controller(CategoryController::class)->group(function
     Route::post('/category/update/{id}', 'update')->name('category.update');
     //
     Route::post('/status/{id}', 'status')->name('category.status');
+    
 
 });
 
@@ -50,7 +51,7 @@ Route::controller(FqaController::class)->group(function () {
 
 Route::controller(ParentController::class)->group(function () {
     Route::get('/family', 'index')->name('family.index');
-    Route::post('/family/delete/{id}', 'delete')->name('family.delete');
+    Route::delete('/family/delete/{id}', 'delete')->name('family.delete');
     Route::get('/family/show/{id}', 'show')->name('family.show');
     Route::patch('/toggle-status/{type}/{id}', 'toggleStatus')->name('toggle.status');
     // Delete a kid
